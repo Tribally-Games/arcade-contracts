@@ -55,5 +55,62 @@
         }
       }
     ]
+  },
+  "base_sepolia": {
+    "chainId": 84532,
+    "contracts": [
+      {
+        "name": "DiamondProxy",
+        "fullyQualifiedName": "DiamondProxy.sol:DiamondProxy",
+        "sender": "0x82180b6EF1245318E631E18B391CD7b4a0C216B0",
+        "txHash": "0x5dfa2001474d091ce576158395082799fb5975edc995704a5f2c729eb195c9c9",
+        "onChain": {
+          "address": "0xd88983Bce82C70AA33a9b6936DbEcd9C9f634411",
+          "constructorArgs": [
+            "0x82180b6EF1245318E631E18B391CD7b4a0C216B0"
+          ]
+        }
+      },
+      {
+        "name": "ConfigFacet",
+        "fullyQualifiedName": "ConfigFacet.sol:ConfigFacet",
+        "sender": "0x82180b6EF1245318E631E18B391CD7b4a0C216B0",
+        "txHash": "0x0ab32b980e11a6ddd021ab4de30f70c336a8f1c5da18d88d3314d38a47fbb981",
+        "onChain": {
+          "address": "0xfc19cDA3D97E5409895b96d8E10307213A629a78",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "GatewayFacet",
+        "fullyQualifiedName": "GatewayFacet.sol:GatewayFacet",
+        "sender": "0x82180b6EF1245318E631E18B391CD7b4a0C216B0",
+        "txHash": "0xe8a23939f0e211df20fde50496a62a88f9874364ee20aa8c1dadc1ea4c18b5ce",
+        "onChain": {
+          "address": "0x522b9fa36493858AD1eD6CDDe2dbc493a8924B2f",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "SigningFacet",
+        "fullyQualifiedName": "SigningFacet.sol:SigningFacet",
+        "sender": "0x82180b6EF1245318E631E18B391CD7b4a0C216B0",
+        "txHash": "0x6ed6b3589002168479817d304395b1b41eba6ce695ba9a0acd9cfb5bedaf1610",
+        "onChain": {
+          "address": "0x61242ce10ca3715695db7a0a9F24bb88736f0eD4",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "InitDiamond",
+        "fullyQualifiedName": "InitDiamond.sol:InitDiamond",
+        "sender": "0x82180b6EF1245318E631E18B391CD7b4a0C216B0",
+        "txHash": "0x89e797abf7f84dd6830ef7a067ce8b48c6810b1e5ab2f7e9604992a704f26156",
+        "onChain": {
+          "address": "0xF1f0E6299D3C4EaEb08bb35D70e123e55B01a889",
+          "constructorArgs": []
+        }
+      }
+    ]
   }
 }

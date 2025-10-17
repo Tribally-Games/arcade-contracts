@@ -37,15 +37,15 @@ If you're working on this repo itself then these instructions are for you.
 Ensure the following pre-requisites are installed
 
 * [Node.js 20+](https://nodejs.org)
-* [PNPM](https://pnpm.io/) _(NOTE: `yarn` and `npm` can also be used)_
+* [Bun](https://bun.sh/)
 * [Foundry](https://github.com/foundry-rs/foundry/blob/master/README.md)
 
 ### Setup
 
 ```shell
 $ foundryup
-$ pnpm i
-$ pnpm bootstrap
+$ bun install
+$ bun run bootstrap
 ```
 
 Create `.env` and set the following within:
@@ -60,42 +60,42 @@ BASESCAN_API_KEY=<your basescan api key>
 Run a local dev node in a separate terminal:
 
 ```shell
-pnpm devnet
+bun run devnet
 ```
 
 To build the code:
 
 ```shell
-$ pnpm build
+$ bun run build
 ```
 
 To run the tests:
 
 ```shell
-$ pnpm test
+$ bun run test
 ```
 
 To deploy to the local target:
 
 ```shell
-$ pnpm dep local
+$ bun run dep local
 ```
 
 To deploy to public networks:
 
-* Base sepolia: `pnpm dep base_sepolia`
-* Base mainnet: `pnpm dep base`
+* Base sepolia: `bun run dep base_sepolia`
+* Base mainnet: `bun run dep base`
 
 Once deployed you can verify contract source-codes on Basescan using:
 
-* Base sepolia: `pnpm verify base_sepolia`
-* Base: `pnpm verify base`
+* Base sepolia: `bun run verify base_sepolia`
+* Base: `bun run verify base`
 
 For verbose output simply add `-v`:
 
 ```shell
-$ pnpm build -v
-$ pnpm dep -v
+$ bun run build -v
+$ bun run dep -v
 ```
 
 ### Publishing releases
@@ -103,9 +103,9 @@ $ pnpm dep -v
 To create a release:
 
 ```shell
-$ pnpm release        # patch version
-$ pnpm release:minor  # minor version
-$ pnpm release:major  # major version
+$ bun run release        # patch version
+$ bun run release:minor  # minor version
+$ bun run release:major  # major version
 ```
 
 

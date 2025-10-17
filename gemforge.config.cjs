@@ -1,7 +1,7 @@
 require('dotenv').config()
 
-const SALT_MAINNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1942"
-const SALT_TESTNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1952"
+const SALT_MAINNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1919"
+const SALT_TESTNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1919"
 
 module.exports = {
   version: 2,
