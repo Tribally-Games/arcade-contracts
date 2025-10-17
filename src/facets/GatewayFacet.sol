@@ -9,9 +9,9 @@ import { AuthSignature } from "src/shared/Structs.sol";
 import { ReentrancyGuard } from "src/shared/ReentrancyGuard.sol";
 
 contract GatewayFacet is ReentrancyGuard {
-  event Deposit(address user, uint amount);
+  event TriballyGatewayDeposit(address user, uint amount);
 
-  event Withdraw(address user, uint amount);
+  event TriballyGatewayWithdraw(address user, uint amount);
 
   function gatewayPoolBalance() external view returns (uint) {
     return LibAppStorage.diamondStorage().gatewayPoolBalance;
@@ -24,7 +24,7 @@ contract GatewayFacet is ReentrancyGuard {
 
     s.gatewayPoolBalance += _amount;
 
-    emit Deposit(_user, _amount);
+    emit TriballyGatewayDeposit(_user, _amount);
   }
 
   function withdraw(address _user, uint _amount,  AuthSignature calldata _sig) external nonReentrant {
@@ -40,6 +40,6 @@ contract GatewayFacet is ReentrancyGuard {
 
     LibTribalToken.transferTo(_user, _amount);
 
-    emit Withdraw(_user, _amount);
+    emit TriballyGatewayWithdraw(_user, _amount);
   }
 }

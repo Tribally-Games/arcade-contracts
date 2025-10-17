@@ -70,7 +70,7 @@ contract GatewayTest is TestBaseContract {
     assertEq(entries.length, 3, "Invalid entry count");
     assertEq(
         entries[2].topics[0],
-        keccak256("Deposit(address,uint256)"),
+        keccak256("TriballyGatewayDeposit(address,uint256)"),
         "Invalid event signature"
     );
     (address user, uint amount) = abi.decode(entries[2].data, (address,uint256));
@@ -106,7 +106,7 @@ contract GatewayTest is TestBaseContract {
     assertEq(entries.length, 3, "Invalid entry count");
     assertEq(
         entries[2].topics[0],
-        keccak256("Deposit(address,uint256)"),
+        keccak256("TriballyGatewayDeposit(address,uint256)"),
         "Invalid event signature"
     );
     (address user, uint amount) = abi.decode(entries[2].data, (address,uint256));
@@ -213,7 +213,7 @@ contract GatewayTest is TestBaseContract {
     assertEq(entries.length, 2, "Invalid entry count");
     assertEq(
         entries[1].topics[0],
-        keccak256("Withdraw(address,uint256)"),
+        keccak256("TriballyGatewayWithdraw(address,uint256)"),
         "Invalid event signature"
     );
     (address user, uint amount) = abi.decode(entries[1].data, (address,uint256));
