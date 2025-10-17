@@ -40,7 +40,7 @@
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.3.1",
-    "gemforge": "^2.16.0",
+    "gemforge": "^2.16.3",
     "husky": "^8.0.2",
     "prettier": "^2.8.8",
     "shelljs": "^0.8.5",

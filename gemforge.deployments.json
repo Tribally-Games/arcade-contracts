@@ -1,0 +1,59 @@
+{
+  "local": {
+    "chainId": 31337,
+    "contracts": [
+      {
+        "name": "DiamondProxy",
+        "fullyQualifiedName": "DiamondProxy.sol:DiamondProxy",
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "txHash": "0x21abf02cddd601b7af2c6032e7abfb3e6fd74cf1df68220ca5828d586f4d8a0d",
+        "onChain": {
+          "address": "0xf10972f87C25FF610bA0AFFb2B0b665e22e606AC",
+          "constructorArgs": [
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+          ]
+        }
+      },
+      {
+        "name": "ConfigFacet",
+        "fullyQualifiedName": "ConfigFacet.sol:ConfigFacet",
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "txHash": "0x224abbb30f5f17a64f99f1c211dc1dd02ad0d5d1ed7883e3529219d6b1ecf33c",
+        "onChain": {
+          "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "GatewayFacet",
+        "fullyQualifiedName": "GatewayFacet.sol:GatewayFacet",
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "txHash": "0x91f37877c6afee19f7056f355218633fa41f0f8ee17ecc1843f360e68c5c4a83",
+        "onChain": {
+          "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "SigningFacet",
+        "fullyQualifiedName": "SigningFacet.sol:SigningFacet",
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "txHash": "0x875e68e6d173832a36a61a2d83eb0a1b1aa5ac72215a205cfeed4c18e1438387",
+        "onChain": {
+          "address": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "InitDiamond",
+        "fullyQualifiedName": "InitDiamond.sol:InitDiamond",
+        "sender": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "txHash": "0xfbb7cda2a99119100b6ae49a54c350893325ba874f11a8cd01d10176ed896194",
+        "onChain": {
+          "address": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+          "constructorArgs": []
+        }
+      }
+    ]
+  }
+}
