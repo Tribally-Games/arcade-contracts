@@ -1,7 +1,7 @@
 [![Build status](https://github.com/tribally-games/arcade-contracts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tribally-Games/arcade-contracts/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/Tribally-Games/arcade-contracts/badge.svg?branch=main)](https://coveralls.io/github/Tribally-Games/arcade-contracts?branch=main)
 
-# @tribally-games/arcade-contracts
+# @tribally.games/arcade-contracts
 
 Arcade smart contracts for [Tribally Games](https://tribally.games).
 
@@ -15,15 +15,15 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 
 Install the NPM package:
 
-* NPM: `npm install @tribally-games/arcade-contracts`
-* Yarn: `yarn add @tribally-games/arcade-contracts`
-* PNPM: `pnpm add @tribally-games/arcade-contracts`
-* Bun: `bun add @tribally-games/arcade-contracts`
+* NPM: `npm install @tribally.games/arcade-contracts`
+* Yarn: `yarn add @tribally.games/arcade-contracts`
+* PNPM: `pnpm add @tribally.games/arcade-contracts`
+* Bun: `bun add @tribally.games/arcade-contracts`
 
 Use it within your code:
 
 ```js
-const { abi, diamondProxy } = require('@tribally-games/arcade-contracts');
+const { abi, diamondProxy } = require('@tribally.games/arcade-contracts');
 
 console.log(abi) // JSON ABI of the diamond proxy
 console.log(diamondProxy.baseSepolia) // address of contracts on Base Sepolia
