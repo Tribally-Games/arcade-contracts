@@ -56,7 +56,7 @@ module.exports = {
   hooks: {
     preBuild: "",
     postBuild: "",
-    preDeploy: "",
+    preDeploy: "./scripts/predeploy.ts",
     postDeploy: "",
   },
   wallets: {
@@ -70,7 +70,7 @@ module.exports = {
     deployer_wallet: {
       type: "private-key",
       config: {
-        key: process.env.DEPLOYER_PRIVATE_KEY
+        key: process.env.DEPLOYER_PRIVATE_KEY || '',
       },
     },
   },
@@ -83,7 +83,7 @@ module.exports = {
       contractVerification: {
         foundry: {
           apiUrl: "https://api-sepolia.basescan.org/api",
-          apiKey: process.env.BASESCAN_API_KEY,
+          apiKey: process.env.BASESCAN_API_KEY || '',
         },
       },
     },
@@ -92,7 +92,7 @@ module.exports = {
       contractVerification: {
         foundry: {
           apiUrl: "https://api.basescan.org/api",
-          apiKey: process.env.BASESCAN_API_KEY,
+          apiKey: process.env.BASESCAN_API_KEY || '',
         },
       },
     },

@@ -46,7 +46,8 @@
     "shelljs": "^0.8.5",
     "solhint": "^3.3.7",
     "solidity-coverage": "^0.7.21",
-    "solidity-docgen": "^0.5.17"
+    "solidity-docgen": "^0.5.17",
+    "viem": "^2.38.3"
   },
   "commitlint": {
     "extends": [
