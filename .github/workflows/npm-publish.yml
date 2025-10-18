@@ -1,0 +1,45 @@
+name: Publish to NPM
+
+on:
+  release:
+    types: [created]
+
+env:
+  FOUNDRY_PROFILE: ci
+  DEPLOYER_PRIVATE_KEY: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+  BASESCAN_API_KEY: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+      security-events: write
+    container:
+      image: ghcr.io/tribally-games/contracts-builder:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: echo "/root/.cargo/bin:/root/.foundry/bin:/root/.bun/bin" >> $GITHUB_PATH
+      - run: svm install 0.8.24 && svm use 0.8.24
+      - run: git config --global --add safe.directory '*'
+      - run: forge install
+      - run: bun install
+      - run: bun run bootstrap
+
+      - name: Compile
+        run: bun run build
+        id: build
+
+      - run: npm config set '//registry.npmjs.org/:_authToken' "${{ secrets.NPM_TOKEN }}"
+      - run: bun publish --access public --no-git-checks

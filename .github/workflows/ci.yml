@@ -1,0 +1,54 @@
+name: ci
+
+on: push
+
+env:
+  FOUNDRY_PROFILE: ci
+  DEPLOYER_PRIVATE_KEY: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+  BASESCAN_API_KEY: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+
+jobs:
+  check:
+    strategy:
+      fail-fast: true
+
+    name: ci
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: read
+      contents: read
+      security-events: write
+    container:
+      image: ghcr.io/tribally-games/contracts-builder:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: echo "/root/.cargo/bin:/root/.foundry/bin:/root/.bun/bin" >> $GITHUB_PATH
+      - run: svm install 0.8.24 && svm use 0.8.24
+      - run: git config --global --add safe.directory '*'
+      - run: forge install
+      - run: bun install
+      - run: bun run bootstrap
+
+      - name: Compile
+        run: bun run build
+        id: build
+
+      - run: cat ./src/generated/IDiamondProxy.sol
+      - run: cat ./src/generated/LibDiamondHelper.sol
+
+      - name: Run tests with coverage
+        run: bun run test-cov
+        id: test
+
+      - name: Upload coverage report to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
