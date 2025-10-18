@@ -10,7 +10,6 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 ## On-chain addresses
 
 * Base: TBD
-* Base Sepolia: TBD
 
 ## Usage guide
 
