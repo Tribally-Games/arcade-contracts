@@ -10,7 +10,7 @@ library LibErrors {
 
   error InsufficientBalanceError();
 
-  error InvalidTribalTokenError();
+  error InvalidGovTokenError();
 
   error SignatureExpired(address caller);
 

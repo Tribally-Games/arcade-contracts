@@ -9,13 +9,15 @@ struct AppStorage {
 
     mapping(bytes32 => bool) authSignatures;
 
-    address tribalToken;
+    address govToken;
 
     address signer;
 
     mapping(address => uint) DEPRECATED_locked;
 
     uint gatewayPoolBalance;
+
+    address usdcToken;
 }
 
 

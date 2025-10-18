@@ -37,7 +37,8 @@ abstract contract TestBaseContract is Test {
   address public account2 = vm.addr(account2_key);
 
   address public diamond;
-  MockERC20 public tribalToken;
+  MockERC20 public govToken;
+  MockERC20 public usdcToken;
 
   function setUp() public virtual {
     vm.label(signer, "Default signer");
@@ -72,21 +73,23 @@ abstract contract TestBaseContract is Test {
       functionSelectors: signingSelectors
     });
 
-    bytes4[] memory configSelectors = new bytes4[](4);
+    bytes4[] memory configSelectors = new bytes4[](5);
     configSelectors[0] = ConfigFacet.signer.selector;
     configSelectors[1] = ConfigFacet.setSigner.selector;
-    configSelectors[2] = ConfigFacet.tribalToken.selector;
-    configSelectors[3] = ConfigFacet.setTribalToken.selector;
+    configSelectors[2] = ConfigFacet.govToken.selector;
+    configSelectors[3] = ConfigFacet.setGovToken.selector;
+    configSelectors[4] = ConfigFacet.usdcToken.selector;
     cuts[2] = IDiamondCut.FacetCut({
       facetAddress: address(configFacet),
       action: IDiamondCut.FacetCutAction.Add,
       functionSelectors: configSelectors
     });
 
-    tribalToken = new MockERC20();
+    govToken = new MockERC20();
+    usdcToken = new MockERC20();
 
     InitDiamond init = new InitDiamond();
-    IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(tribalToken), signer));
+    IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer));
   }
 
   function _computeDefaultSig(bytes memory _data, uint _deadline) internal view returns (AuthSignature memory) {

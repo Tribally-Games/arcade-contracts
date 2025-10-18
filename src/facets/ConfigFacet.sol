@@ -6,7 +6,7 @@ import { AccessControl } from "src/shared/AccessControl.sol";
 import { LibErrors } from "src/libs/LibErrors.sol";
 
 contract ConfigFacet is AccessControl {
-  event TribalTokenChanged(address newTribalToken);
+  event GovTokenChanged(address newGovToken);
 
   event SignerChanged(address newSigner);
 
@@ -24,17 +24,21 @@ contract ConfigFacet is AccessControl {
     emit SignerChanged(_signer);
   }
 
-  function tribalToken() external view returns (address) {
-    return LibAppStorage.diamondStorage().tribalToken;
+  function govToken() external view returns (address) {
+    return LibAppStorage.diamondStorage().govToken;
   }
 
-  function setTribalToken(address _tribalToken) external isAdmin {
-    if (_tribalToken == address(0)) {
-      revert LibErrors.InvalidTribalTokenError();
+  function setGovToken(address _govToken) external isAdmin {
+    if (_govToken == address(0)) {
+      revert LibErrors.InvalidGovTokenError();
     }
 
-    LibAppStorage.diamondStorage().tribalToken = _tribalToken;
+    LibAppStorage.diamondStorage().govToken = _govToken;
 
-    emit TribalTokenChanged(_tribalToken);
+    emit GovTokenChanged(_govToken);
+  }
+
+  function usdcToken() external view returns (address) {
+    return LibAppStorage.diamondStorage().usdcToken;
   }
 }

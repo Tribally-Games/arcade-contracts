@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import { AppStorage, LibAppStorage } from "src/libs/LibAppStorage.sol";
 import { LibErrors } from "src/libs/LibErrors.sol";
 import { LibAuth } from "src/libs/LibAuth.sol";
-import { LibTribalToken } from "src/libs/LibTribalToken.sol";
+import { LibUsdcToken } from "src/libs/LibUsdcToken.sol";
 import { AuthSignature } from "src/shared/Structs.sol";
 import { ReentrancyGuard } from "src/shared/ReentrancyGuard.sol";
 
@@ -20,7 +20,7 @@ contract GatewayFacet is ReentrancyGuard {
   function deposit(address _user, uint _amount) external {
     AppStorage storage s = LibAppStorage.diamondStorage();
 
-    LibTribalToken.transferFrom(msg.sender, _amount);
+    LibUsdcToken.transferFrom(msg.sender, _amount);
 
     s.gatewayPoolBalance += _amount;
 
@@ -38,7 +38,7 @@ contract GatewayFacet is ReentrancyGuard {
 
     s.gatewayPoolBalance -= _amount;
 
-    LibTribalToken.transferTo(_user, _amount);
+    LibUsdcToken.transferTo(_user, _amount);
 
     emit TriballyGatewayWithdraw(_user, _amount);
   }

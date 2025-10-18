@@ -15,8 +15,9 @@ interface IGatewayFacet {
 interface IConfigFacet {
   function signer() external view returns (address);
   function setSigner(address _signer) external;
-  function tribalToken() external view returns (address);
-  function setTribalToken(address _tribalToken) external;
+  function govToken() external view returns (address);
+  function setGovToken(address _govToken) external;
+  function usdcToken() external view returns (address);
 }
 
 contract GatewayTest is TestBaseContract {
@@ -29,10 +30,10 @@ contract GatewayTest is TestBaseContract {
     gatewayFacet = IGatewayFacet(diamond);
     configFacet = IConfigFacet(diamond);
 
-    tribalToken.mint(account1, 100);
+    usdcToken.mint(account1, 100);
 
     vm.prank(account1);
-    tribalToken.approve(address(diamond), 101);
+    usdcToken.approve(address(diamond), 101);
   }
 
   function test_Deposit_FailsIfNotEnoughBalance() public {
@@ -43,7 +44,7 @@ contract GatewayTest is TestBaseContract {
 
   function test_Deposit_FailsIfNotEnoughAllowance() public {
     vm.prank(account1);
-    tribalToken.approve(address(diamond), 99);
+    usdcToken.approve(address(diamond), 99);
 
     vm.prank(account1);
     vm.expectRevert();
@@ -54,8 +55,8 @@ contract GatewayTest is TestBaseContract {
     vm.prank(account1);
     gatewayFacet.deposit(account1, 100);
 
-    assertEq(0, tribalToken.balanceOf(account1));
-    assertEq(100, tribalToken.balanceOf(address(diamond)));
+    assertEq(0, usdcToken.balanceOf(account1));
+    assertEq(100, usdcToken.balanceOf(address(diamond)));
     assertEq(100, gatewayFacet.gatewayPoolBalance());
   }
 
@@ -80,14 +81,14 @@ contract GatewayTest is TestBaseContract {
 
   function test_Deposit_Success_OnBehalfOfOtherUser() public {
     vm.prank(account2);
-    tribalToken.approve(address(diamond), 100);
-    tribalToken.mint(account2, 100);
+    usdcToken.approve(address(diamond), 100);
+    usdcToken.mint(account2, 100);
 
     vm.prank(account2);
     gatewayFacet.deposit(account1, 100);
 
-    assertEq(0, tribalToken.balanceOf(account2));
-    assertEq(100, tribalToken.balanceOf(address(diamond)));
+    assertEq(0, usdcToken.balanceOf(account2));
+    assertEq(100, usdcToken.balanceOf(address(diamond)));
     assertEq(100, gatewayFacet.gatewayPoolBalance());
   }
 
@@ -97,8 +98,8 @@ contract GatewayTest is TestBaseContract {
     vm.prank(account1);
     gatewayFacet.deposit(address(0), 100);
 
-    assertEq(0, tribalToken.balanceOf(account1));
-    assertEq(100, tribalToken.balanceOf(address(diamond)));
+    assertEq(0, usdcToken.balanceOf(account1));
+    assertEq(100, usdcToken.balanceOf(address(diamond)));
     assertEq(100, gatewayFacet.gatewayPoolBalance());
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -118,8 +119,8 @@ contract GatewayTest is TestBaseContract {
     vm.prank(account1);
     gatewayFacet.deposit(account1, 100);
 
-    assertEq(0, tribalToken.balanceOf(account1));
-    assertEq(100, tribalToken.balanceOf(address(diamond)));
+    assertEq(0, usdcToken.balanceOf(account1));
+    assertEq(100, usdcToken.balanceOf(address(diamond)));
     assertEq(100, gatewayFacet.gatewayPoolBalance());
   }
 
@@ -193,8 +194,8 @@ contract GatewayTest is TestBaseContract {
       block.timestamp + 10 seconds
     ));
 
-    assertEq(1, tribalToken.balanceOf(account1));
-    assertEq(99, tribalToken.balanceOf(address(diamond)));
+    assertEq(1, usdcToken.balanceOf(account1));
+    assertEq(99, usdcToken.balanceOf(address(diamond)));
     assertEq(99, gatewayFacet.gatewayPoolBalance());
   }
 
@@ -233,8 +234,8 @@ contract GatewayTest is TestBaseContract {
       block.timestamp + 10 seconds
     ));
 
-    assertEq(1, tribalToken.balanceOf(account1));
-    assertEq(99, tribalToken.balanceOf(address(diamond)));
+    assertEq(1, usdcToken.balanceOf(account1));
+    assertEq(99, usdcToken.balanceOf(address(diamond)));
     assertEq(99, gatewayFacet.gatewayPoolBalance());
   }
 

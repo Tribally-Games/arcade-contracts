@@ -8,14 +8,15 @@ error DiamondAlreadyInitialized();
 contract InitDiamond {
   event InitializeDiamond(address sender);
 
-  function init(address _tribalToken, address _signer) external {
+  function init(address _govToken, address _usdcToken, address _signer) external {
     AppStorage storage s = LibAppStorage.diamondStorage();
     if (s.diamondInitialized) {
       revert DiamondAlreadyInitialized();
     }
     s.diamondInitialized = true;
 
-    s.tribalToken = _tribalToken;
+    s.govToken = _govToken;
+    s.usdcToken = _usdcToken;
     s.signer = _signer;
 
     emit InitializeDiamond(msg.sender);
