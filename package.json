@@ -21,7 +21,7 @@
     "devnet-baseFork": "anvil --fork-url https://mainnet.base.org",
     "clean": "forge clean",
     "test": "forge test -vv",
-    "test-cov": "forge coverage --report lcov -vv",
+    "test-cov": "forge coverage --report lcov -vv && bun scripts/filter-coverage.ts",
     "build": "gemforge build",
     "dep": "gemforge deploy",
     "query": "gemforge query",

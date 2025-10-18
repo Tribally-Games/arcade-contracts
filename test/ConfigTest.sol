@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 import "forge-std/Test.sol";
 import { TestBaseContract } from "./utils/TestBaseContract.sol";
 import { LibErrors } from "src/libs/LibErrors.sol";
+import { InitDiamond } from "src/init/InitDiamond.sol";
+import { IDiamondCut } from "lib/diamond-2-hardhat/contracts/interfaces/IDiamondCut.sol";
 
 interface IConfigFacet {
   function signer() external view returns (address);
@@ -126,5 +128,17 @@ contract ConfigTest is TestBaseContract {
     assertEq(configFacet.govToken(), token3);
 
     vm.stopPrank();
+  }
+
+  function test_Init_FailsIfAlreadyInitialized() public {
+    InitDiamond init = new InitDiamond();
+    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
+
+    vm.expectRevert(abi.encodeWithSignature("DiamondAlreadyInitialized()"));
+    IDiamondCut(diamond).diamondCut(
+      cuts,
+      address(init),
+      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer)
+    );
   }
 }
