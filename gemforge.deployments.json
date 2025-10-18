@@ -55,5 +55,62 @@
         }
       }
     ]
+  },
+  "base": {
+    "chainId": 8453,
+    "contracts": [
+      {
+        "name": "DiamondProxy",
+        "fullyQualifiedName": "DiamondProxy.sol:DiamondProxy",
+        "sender": "0xd50A0a15f448452710a5ce278D2DC723A368e663",
+        "txHash": "0xdc041c7781e7193a1eccf44eeb9c6682370ec58574061faed61a704db476b8bb",
+        "onChain": {
+          "address": "0x1224849B354a93C0BEe656E7779b584Ca2a03D5E",
+          "constructorArgs": [
+            "0xd50A0a15f448452710a5ce278D2DC723A368e663"
+          ]
+        }
+      },
+      {
+        "name": "ConfigFacet",
+        "fullyQualifiedName": "ConfigFacet.sol:ConfigFacet",
+        "sender": "0xd50A0a15f448452710a5ce278D2DC723A368e663",
+        "txHash": "0x5974dbca5b1ba3d2e97311564f4219d0741bbfffcf4efd64479409c855f4bef0",
+        "onChain": {
+          "address": "0x5C86f0f8620D4168202e54A373431916f9495010",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "GatewayFacet",
+        "fullyQualifiedName": "GatewayFacet.sol:GatewayFacet",
+        "sender": "0xd50A0a15f448452710a5ce278D2DC723A368e663",
+        "txHash": "0x7c7a9096474d74a7eab1265edc2f9bea1b915a2f70e4f5d601c2edebab979992",
+        "onChain": {
+          "address": "0x3740f864B2DD7Ea06c44F32Dd1c504f0b3cF7FD8",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "SigningFacet",
+        "fullyQualifiedName": "SigningFacet.sol:SigningFacet",
+        "sender": "0xd50A0a15f448452710a5ce278D2DC723A368e663",
+        "txHash": "0xa88e7193a41271204086506f08dc4dcb4a8bdd8382b09efd9906c27ebe57121b",
+        "onChain": {
+          "address": "0x17A4705c95BeD7861e1d14938fC33132d4DC08a0",
+          "constructorArgs": []
+        }
+      },
+      {
+        "name": "InitDiamond",
+        "fullyQualifiedName": "InitDiamond.sol:InitDiamond",
+        "sender": "0xd50A0a15f448452710a5ce278D2DC723A368e663",
+        "txHash": "0x921587a250fd752f0999530e47586a2d9169ff3206ba3afccfc73549d82359a7",
+        "onChain": {
+          "address": "0x87fAf92c34E1F0cefbeB026E97a34f770A6DB299",
+          "constructorArgs": []
+        }
+      }
+    ]
   }
 }

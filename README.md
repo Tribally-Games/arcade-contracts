@@ -9,7 +9,7 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 
 ## On-chain addresses
 
-* Base: TBD
+* Base: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
 
 ## Usage guide
 
