@@ -1,7 +1,6 @@
 require('dotenv').config()
 
-const SALT_MAINNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1919"
-const SALT_TESTNET = "0xf93ac9c61a8577e3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1919"
+const SALT = "0xf93ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1939"
 
 module.exports = {
   version: 2,
@@ -107,27 +106,30 @@ module.exports = {
       wallet: "local_wallet",
       initArgs: [
         "0x000000000000000000000000000000000000dead",
+        "0x000000000000000000000000000000000000dead",
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
       ],
-      create3Salt: SALT_TESTNET,
+      create3Salt: SALT,
     },
     base_sepolia: {
       network: "base_sepolia",
       wallet: "deployer_wallet",
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
+        "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         "0x000000000000000000000000000000000000dead"
       ],
-      create3Salt: SALT_TESTNET,
+      create3Salt: SALT,
     },
     base: {
       network: "base",
       wallet: "deployer_wallet",
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
         "0x000000000000000000000000000000000000dead"
       ],
-      create3Salt: SALT_MAINNET,
+      create3Salt: SALT,
       upgrades: {
         manualCut: true
       }
