@@ -44,25 +44,31 @@ const walletClient = createWalletClient({
 const artifactPath = join(process.cwd(), 'out/TestERC20.sol/TestERC20.json');
 const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
 
-const KNOWN_TOKEN_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const KNOWN_USDC_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const KNOWN_TRIBAL_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
-async function main() {
+async function deployToken(
+  name: string,
+  symbol: string,
+  decimals: number,
+  knownAddress: `0x${string}`,
+  mintAmount: bigint
+) {
   const bytecode = artifact.bytecode.object as `0x${string}`;
 
-  const code = await publicClient.getCode({ address: KNOWN_TOKEN_ADDRESS });
+  const code = await publicClient.getCode({ address: knownAddress });
 
   if (code && code !== '0x') {
-    console.log(`✓ Token already deployed at ${KNOWN_TOKEN_ADDRESS}`);
-    console.log(`Token address: ${KNOWN_TOKEN_ADDRESS}`);
-    return;
+    console.log(`✓ ${name} already deployed at ${knownAddress}`);
+    return knownAddress;
   }
 
-  console.log('Deploying TestERC20 token with 6 decimals...');
+  console.log(`Deploying ${name} (${symbol}) with ${decimals} decimals...`);
 
   const hash = await walletClient.deployContract({
     abi: artifact.abi,
     bytecode: bytecode,
-    args: [],
+    args: [name, symbol, decimals],
   });
 
   console.log(`Deploy transaction: ${hash}`);
@@ -79,14 +85,20 @@ async function main() {
     address: receipt.contractAddress,
     abi: artifact.abi,
     functionName: 'mint',
-    args: [account.address, 1000000000n],
+    args: [account.address, mintAmount],
   });
 
   await publicClient.waitForTransactionReceipt({ hash: mintHash });
 
-  console.log(`✓ Token deployed successfully`);
+  console.log(`✓ ${name} deployed successfully`);
   console.log(`Token address: ${receipt.contractAddress}`);
-  console.log(`Deployer balance: 1,000,000,000 (1000 with 6 decimals)`);
+
+  return receipt.contractAddress;
+}
+
+async function main() {
+  await deployToken('TestUSDC', 'tUSDC', 6, KNOWN_USDC_ADDRESS, 1000000000n);
+  await deployToken('TestTRIBAL', 'tTRIBAL', 18, KNOWN_TRIBAL_ADDRESS, 1000000000000000000000n);
 }
 
 main().catch((error) => {

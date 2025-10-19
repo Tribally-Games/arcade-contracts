@@ -106,7 +106,7 @@ module.exports = {
       wallet: "local_wallet",
       initArgs: [
         "0x000000000000000000000000000000000000dead",
-        "0x000000000000000000000000000000000000dead",
+        "0x5fbdb2315678afecb367f032d93f642f64180aa3",
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
       ],
       create3Salt: SALT,
