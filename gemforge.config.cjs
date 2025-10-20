@@ -78,21 +78,12 @@ module.exports = {
     local: {
       rpcUrl: "http://localhost:8545",
     },
-    base_sepolia: {
-      rpcUrl: "https://sepolia.base.org",
-      contractVerification: {
-        foundry: {
-          apiUrl: "https://api-sepolia.basescan.org/api",
-          apiKey: process.env.BASESCAN_API_KEY || '',
-        },
-      },
-    },
     base: {
       rpcUrl: "https://base.lava.build",
       contractVerification: {
         foundry: {
-          apiUrl: "https://api.basescan.org/api",
-          apiKey: process.env.BASESCAN_API_KEY || '',
+          apiUrl: "https://api.etherscan.io/v2/api?chainid=8453",
+          apiKey: process.env.ETHERSCAN_API_KEY || '',
         },
       },
     },
@@ -108,16 +99,6 @@ module.exports = {
         "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
         "0x5fbdb2315678afecb367f032d93f642f64180aa3",
         "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-      ],
-      create3Salt: SALT,
-    },
-    base_sepolia: {
-      network: "base_sepolia",
-      wallet: "deployer_wallet",
-      initArgs: [
-        "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
-        "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-        "0x000000000000000000000000000000000000dead"
       ],
       create3Salt: SALT,
     },

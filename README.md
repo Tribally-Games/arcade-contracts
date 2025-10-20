@@ -82,13 +82,11 @@ $ bun run dep local
 
 To deploy to public networks:
 
-* Base sepolia: `bun run dep base_sepolia`
 * Base mainnet: `bun run dep base`
 
 Once deployed you can verify contract source-codes on Basescan using:
 
-* Base sepolia: `bun run verify base_sepolia`
-* Base: `bun run verify base`
+* Base: `ETHERSCAN_API_KEY=... bun run verify base`
 
 For verbose output simply add `-v`:
 
