@@ -1,10 +1,9 @@
 #!/usr/bin/env bun
 
-import { createPublicClient, createWalletClient, http, getContract, parseAbi } from 'viem';
-import { mnemonicToAccount } from 'viem/accounts';
-import { foundry } from 'viem/chains';
+import { parseAbi } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { createClients } from './utils';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
@@ -15,31 +14,9 @@ if (TARGET !== 'local') {
 
 console.log('Running predeploy script for local target...');
 
-const configPath = join(process.cwd(), 'gemforge.config.cjs');
-const config = require(configPath);
-
-const walletConfig = config.wallets.local_wallet;
-
-if (walletConfig.type !== 'mnemonic') {
-  throw new Error('Expected mnemonic wallet type for local_wallet');
-}
-
-const account = mnemonicToAccount(walletConfig.config.words, {
-  addressIndex: walletConfig.config.index,
-});
+const { publicClient, walletClient, account } = createClients('local');
 
 console.log(`Using deployer address: ${account.address}`);
-
-const publicClient = createPublicClient({
-  chain: foundry,
-  transport: http('http://localhost:8545'),
-});
-
-const walletClient = createWalletClient({
-  account,
-  chain: foundry,
-  transport: http('http://localhost:8545'),
-});
 
 const artifactPath = join(process.cwd(), 'out/TestERC20.sol/TestERC20.json');
 const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
