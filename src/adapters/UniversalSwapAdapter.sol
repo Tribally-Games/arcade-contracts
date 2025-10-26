@@ -5,13 +5,13 @@ import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
-import { IKatanaRouter } from "../interfaces/IKatanaRouter.sol";
+import { IUniversalRouter } from "../interfaces/IUniversalRouter.sol";
 import { Commands } from "lib/katana-operation-contracts/src/aggregate-router/libraries/Commands.sol";
 
-contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
+contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
     using SafeERC20 for IERC20;
 
-    address public immutable katanaRouter;
+    address public immutable universalRouter;
 
     address private constant ADDRESS_THIS = address(2);
 
@@ -19,10 +19,10 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
 
     error InvalidAddress();
 
-    constructor(address _katanaRouter) {
-        if (_katanaRouter == address(0)) revert InvalidAddress();
+    constructor(address _universalRouter) {
+        if (_universalRouter == address(0)) revert InvalidAddress();
 
-        katanaRouter = _katanaRouter;
+        universalRouter = _universalRouter;
 
         _transferOwnership(msg.sender);
     }
@@ -63,13 +63,13 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
                 false
             );
 
-            IKatanaRouter(katanaRouter).execute{ value: msg.value }(
+            IUniversalRouter(universalRouter).execute{ value: msg.value }(
                 commands,
                 inputs,
                 block.timestamp + 300
             );
         } else {
-            IERC20(tokenIn).safeTransferFrom(msg.sender, katanaRouter, amountIn);
+            IERC20(tokenIn).safeTransferFrom(msg.sender, universalRouter, amountIn);
 
             bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V3_SWAP_EXACT_IN)));
             bytes[] memory inputs = new bytes[](1);
@@ -82,7 +82,7 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
                 false
             );
 
-            IKatanaRouter(katanaRouter).execute(commands, inputs, block.timestamp + 300);
+            IUniversalRouter(universalRouter).execute(commands, inputs, block.timestamp + 300);
         }
 
         uint256 balanceAfter = IERC20(tokenOut).balanceOf(address(this));

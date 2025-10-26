@@ -6,11 +6,7 @@ import { DEX_ROUTERS, TOKEN_CONFIGS } from './gateway-utils';
 import { type Hex } from 'viem';
 import { deployWithCreate3, type DeployResult } from './create3-deploy';
 
-const CREATE3_SALT = '0x4445585f41444150544552000000000000000000000000000000000000001aff' as Hex;
-
-const QUOTER_V2_ADDRESSES: Record<string, string> = {
-  base: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a',
-};
+const CREATE3_SALT = '0x4445585f41444150544552000000000000000000000000000000000000012aff' as Hex;
 
 export async function deployAdapter(
   network: string,
@@ -26,9 +22,8 @@ export async function deployAdapter(
   }
 
   const adapterType =
-    network === 'base' ? 'uniswap'
-    : (network === 'local1' || network === 'local2') ? 'dummy'
-    : 'katana';
+    (network === 'local1' || network === 'local2') ? 'dummy'
+    : 'universal';
 
   const clients = createClients(network);
 
@@ -52,33 +47,19 @@ export async function deployAdapter(
     contractPath = 'DummyDexAdapter.sol';
     constructorArgs = [wethAddress, usdcAddress];
     constructorTypes = ['address', 'address'];
-  } else if (adapterType === 'katana') {
-    const routerAddress = options.router || DEX_ROUTERS[network]?.katana;
+  } else {
+    // Universal adapter works with both Katana (Ronin) and Uniswap (Base) routers
+    const routerAddress = options.router ||
+      (network === 'base' ? DEX_ROUTERS[network]?.uniswap : DEX_ROUTERS[network]?.katana);
 
     if (!routerAddress) {
-      throw new Error(`No default router address for katana on ${network}`);
+      throw new Error(`No default router address for ${network}`);
     }
 
-    contractName = 'KatanaSwapAdapter';
+    contractName = 'UniversalSwapAdapter';
     contractPath = `${contractName}.sol`;
     constructorArgs = [routerAddress];
     constructorTypes = ['address'];
-  } else {
-    // uniswap
-    const routerAddress = options.router || DEX_ROUTERS[network]?.uniswap;
-    const quoterAddress = QUOTER_V2_ADDRESSES[network];
-
-    if (!routerAddress) {
-      throw new Error(`No default router address for uniswap on ${network}`);
-    }
-    if (!quoterAddress) {
-      throw new Error(`No QuoterV2 address configured for ${network}`);
-    }
-
-    contractName = 'UniswapV3SwapAdapter';
-    contractPath = `${contractName}.sol`;
-    constructorArgs = [routerAddress, quoterAddress];
-    constructorTypes = ['address', 'address'];
   }
 
   const verification = getVerificationConfig(network);
@@ -111,9 +92,9 @@ async function main() {
   const options = program.opts();
 
   const adapterType =
-    network === 'base' ? 'uniswap'
-    : (network === 'local1' || network === 'local2') ? 'dummy'
-    : 'katana';
+    (network === 'local1' || network === 'local2') ? 'dummy'
+    : 'universal';
+  const routerType = network === 'base' ? 'Uniswap' : 'Katana';
   const clients = createClients(network);
 
   console.log('╔════════════════════════════════════════╗');
@@ -127,13 +108,10 @@ async function main() {
     const usdcAddress = options.usdc || TOKEN_CONFIGS[network]?.usdc?.address;
     console.log(`WETH:        ${wethAddress}`);
     console.log(`USDC:        ${usdcAddress}`);
-  } else if (adapterType === 'uniswap') {
-    const routerAddress = options.router || DEX_ROUTERS[network]?.uniswap;
-    const quoterAddress = QUOTER_V2_ADDRESSES[network];
-    console.log(`Router:      ${routerAddress}`);
-    console.log(`QuoterV2:    ${quoterAddress}`);
   } else {
-    const routerAddress = options.router || DEX_ROUTERS[network]?.katana;
+    const routerAddress = options.router ||
+      (network === 'base' ? DEX_ROUTERS[network]?.uniswap : DEX_ROUTERS[network]?.katana);
+    console.log(`Router Type: ${routerType}`);
     console.log(`Router:      ${routerAddress}`);
   }
 

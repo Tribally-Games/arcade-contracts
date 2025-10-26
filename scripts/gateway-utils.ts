@@ -102,7 +102,7 @@ export const DEX_ROUTERS: Record<string, { katana?: `0x${string}`; uniswap?: `0x
     katana: '0x5f0acdd3ec767514ff1bf7e79949640bf94576bd',
   },
   base: {
-    uniswap: '0x2626664c2603336E57B271c5C0b26F421741e481',
+    uniswap: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
   },
   local1: {
     dummy: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',

@@ -10,7 +10,7 @@ interface IWETH {
     function transfer(address, uint256) external returns (bool);
 }
 
-contract MockKatanaRouter {
+contract MockUniversalRouter {
     uint256 private constant WRAP_ETH = 0x0b;
     uint256 private constant V3_SWAP_EXACT_IN = 0x00;
     address private constant ADDRESS_THIS = address(2);

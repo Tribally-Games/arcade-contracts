@@ -2,15 +2,15 @@
 pragma solidity 0.8.24;
 
 import "forge-std/Test.sol";
-import { KatanaSwapAdapter } from "src/adapters/KatanaSwapAdapter.sol";
-import { MockKatanaRouter } from "./mocks/MockKatanaRouter.sol";
+import { UniversalSwapAdapter } from "src/adapters/UniversalSwapAdapter.sol";
+import { MockUniversalRouter } from "./mocks/MockUniversalRouter.sol";
 import { MockWETH } from "src/mocks/MockWETH.sol";
 import { TestERC20 } from "src/mocks/TestERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-contract KatanaSwapAdapterTest is Test {
-    KatanaSwapAdapter public adapter;
-    MockKatanaRouter public router;
+contract UniversalSwapAdapterTest is Test {
+    UniversalSwapAdapter public adapter;
+    MockUniversalRouter public router;
     MockWETH public weth;
     TestERC20 public usdc;
 
@@ -25,10 +25,10 @@ contract KatanaSwapAdapterTest is Test {
     function setUp() public {
         weth = new MockWETH();
         usdc = new TestERC20("USD Coin", "USDC", 6);
-        router = new MockKatanaRouter(address(weth), address(usdc));
+        router = new MockUniversalRouter(address(weth), address(usdc));
 
         vm.prank(owner);
-        adapter = new KatanaSwapAdapter(address(router));
+        adapter = new UniversalSwapAdapter(address(router));
 
         usdc.mint(address(router), INITIAL_ROUTER_USDC);
 
@@ -42,19 +42,19 @@ contract KatanaSwapAdapterTest is Test {
     }
 
     function test_Constructor_RevertsWhenRouterIsZeroAddress() public {
-        vm.expectRevert(KatanaSwapAdapter.InvalidAddress.selector);
-        new KatanaSwapAdapter(address(0));
+        vm.expectRevert(UniversalSwapAdapter.InvalidAddress.selector);
+        new UniversalSwapAdapter(address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
-        assertEq(adapter.katanaRouter(), address(router));
+        assertEq(adapter.universalRouter(), address(router));
         assertEq(adapter.owner(), owner);
     }
 
     function test_Constructor_SetsDeployerAsOwner() public {
         address deployer = address(0x1111);
         vm.prank(deployer);
-        KatanaSwapAdapter newAdapter = new KatanaSwapAdapter(address(router));
+        UniversalSwapAdapter newAdapter = new UniversalSwapAdapter(address(router));
         assertEq(newAdapter.owner(), deployer);
     }
 
@@ -189,7 +189,7 @@ contract KatanaSwapAdapterTest is Test {
     }
 
     function test_RescueTokens_RevertsWhenTokenIsZeroAddress() public {
-        vm.expectRevert(KatanaSwapAdapter.InvalidAddress.selector);
+        vm.expectRevert(UniversalSwapAdapter.InvalidAddress.selector);
         adapter.rescueTokens(address(0), 1000e6);
     }
 

@@ -10,6 +10,6 @@
 [submodule "lib/katana-operation-contracts"]
 	path = lib/katana-operation-contracts
 	url = https://github.com/ronin-chain/katana-operation-contracts
-[submodule "lib/uniswap-v3-periphery"]
-	path = lib/uniswap-v3-periphery
-	url = https://github.com/Uniswap/uniswap-v3-periphery
+[submodule "lib/universal-router"]
+	path = lib/universal-router
+	url = https://github.com/Uniswap/universal-router

@@ -133,7 +133,7 @@ module.exports = {
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
         "0x000000000000000000000000000000000000dead",
-        "0xc5D58FF405C7664980aAd32DABdb55dEDEc7d388"
+        "0x5037b42D80fBAa5B8F02437CA39EcedC781dC8F9"
       ],
       create3Salt: SALT,
       upgrades: {
@@ -152,10 +152,10 @@ module.exports = {
       network: "ronin",
       wallet: "deployer_wallet",
       initArgs: [
-        "0x5f0acdd3ec767514ff1bf7e79949640bf94576bd",
+        "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
         "0x000000000000000000000000000000000000dead",
-        "0x7370ad0dcDf557F386dcbed8C740aB92D972e467"
+        "0x5037b42D80fBAa5B8F02437CA39EcedC781dC8F9"
       ],
       create3Salt: SALT,
       upgrades: {
