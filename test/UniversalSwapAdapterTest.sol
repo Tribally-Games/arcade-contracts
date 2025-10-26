@@ -225,4 +225,43 @@ contract UniversalSwapAdapterTest is Test {
 
         assertEq(amountOut, (amountIn * 2000) / 1e12);
     }
+
+    function test_SwapDeadline_DefaultIs300Seconds() public view {
+        assertEq(adapter.swapDeadline(), 300);
+    }
+
+    function test_SetSwapDeadline_Success() public {
+        uint256 newDeadline = 600;
+
+        vm.expectEmit(true, true, true, true);
+        emit UniversalSwapAdapter.SwapDeadlineUpdated(300, newDeadline);
+
+        adapter.setSwapDeadline(newDeadline);
+
+        assertEq(adapter.swapDeadline(), newDeadline);
+    }
+
+    function test_SetSwapDeadline_RevertsWhenNotOwner() public {
+        vm.prank(nonOwner);
+        vm.expectRevert();
+        adapter.setSwapDeadline(600);
+    }
+
+    function test_SetSwapDeadline_RevertsWhenZero() public {
+        vm.expectRevert(UniversalSwapAdapter.InvalidDeadline.selector);
+        adapter.setSwapDeadline(0);
+    }
+
+    function test_Swap_UsesConfiguredDeadline() public {
+        adapter.setSwapDeadline(120);
+
+        uint256 amountIn = 1 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.prank(user);
+        uint256 amountOut = adapter.swap{ value: amountIn }(address(0), amountIn, 0, path);
+
+        assertEq(amountOut, (amountIn * 2000) / 1e12);
+        assertEq(usdc.balanceOf(user), amountOut);
+    }
 }

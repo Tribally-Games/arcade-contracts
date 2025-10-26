@@ -4,20 +4,25 @@ pragma solidity ^0.8.24;
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
 import { IUniversalRouter } from "../interfaces/IUniversalRouter.sol";
 import { Commands } from "lib/katana-operation-contracts/src/aggregate-router/libraries/Commands.sol";
 
-contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
+contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public immutable universalRouter;
 
     address private constant ADDRESS_THIS = address(2);
 
+    uint256 public swapDeadline = 300;
+
     event TokensRescued(address indexed token, address indexed to, uint256 amount);
+    event SwapDeadlineUpdated(uint256 oldDeadline, uint256 newDeadline);
 
     error InvalidAddress();
+    error InvalidDeadline();
 
     constructor(address _universalRouter) {
         if (_universalRouter == address(0)) revert InvalidAddress();
@@ -40,7 +45,7 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
         uint256 amountIn,
         uint256 amountOutMinimum,
         bytes calldata path
-    ) external payable override returns (uint256 amountOut) {
+    ) external payable override nonReentrant returns (uint256 amountOut) {
         address tokenOut = _extractOutputToken(path);
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(address(this));
 
@@ -66,7 +71,7 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
             IUniversalRouter(universalRouter).execute{ value: msg.value }(
                 commands,
                 inputs,
-                block.timestamp + 300
+                block.timestamp + swapDeadline
             );
         } else {
             IERC20(tokenIn).safeTransferFrom(msg.sender, universalRouter, amountIn);
@@ -82,7 +87,7 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
                 false
             );
 
-            IUniversalRouter(universalRouter).execute(commands, inputs, block.timestamp + 300);
+            IUniversalRouter(universalRouter).execute(commands, inputs, block.timestamp + swapDeadline);
         }
 
         uint256 balanceAfter = IERC20(tokenOut).balanceOf(address(this));
@@ -97,6 +102,15 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable {
         assembly {
             tokenOut := shr(96, calldataload(add(path.offset, sub(path.length, 20))))
         }
+    }
+
+    function setSwapDeadline(uint256 _deadline) external onlyOwner {
+        if (_deadline == 0) revert InvalidDeadline();
+
+        uint256 oldDeadline = swapDeadline;
+        swapDeadline = _deadline;
+
+        emit SwapDeadlineUpdated(oldDeadline, _deadline);
     }
 
     function rescueTokens(address _token, uint256 _amount) external onlyOwner {

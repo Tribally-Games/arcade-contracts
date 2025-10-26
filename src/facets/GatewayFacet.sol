@@ -10,8 +10,11 @@ import { AuthSignature } from "src/shared/Structs.sol";
 import { ReentrancyGuard } from "src/shared/ReentrancyGuard.sol";
 import { IDexSwapAdapter } from "src/interfaces/IDexSwapAdapter.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract GatewayFacet is ReentrancyGuard {
+  using SafeERC20 for IERC20;
+
   event TriballyGatewayDeposit(
     address indexed user,
     address indexed depositToken,
@@ -31,7 +34,7 @@ contract GatewayFacet is ReentrancyGuard {
     uint256 _amount,
     uint256 _minUsdcAmount,
     bytes calldata _swapData
-  ) external payable {
+  ) external payable nonReentrant {
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     bool isNative = _token == address(0);
@@ -50,10 +53,7 @@ contract GatewayFacet is ReentrancyGuard {
       usdcAmount = _amount;
     } else {
       if (!isNative) {
-        uint256 currentAllowance = IERC20(_token).allowance(address(this), s.swapAdapter);
-        if (currentAllowance < _amount) {
-          IERC20(_token).approve(s.swapAdapter, type(uint256).max);
-        }
+        IERC20(_token).forceApprove(s.swapAdapter, _amount);
       }
 
       usdcAmount = IDexSwapAdapter(s.swapAdapter).swap{ value: isNative ? _amount : 0 }(
