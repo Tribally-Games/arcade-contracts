@@ -3,44 +3,13 @@
 import { getContract, encodePacked, encodeFunctionData } from 'viem';
 import { Command } from 'commander';
 import { createClients } from './utils';
+import { NETWORK_CONFIGS } from './gateway-utils';
 import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
 import IERC20Artifact from '../out/IERC20.sol/IERC20.json';
 import IERC20MetadataArtifact from '../out/IERC20Metadata.sol/IERC20Metadata.json';
 
 const ADAPTER_ABI = IDexSwapAdapterArtifact.abi;
 const ERC20_ABI = [...IERC20Artifact.abi, ...IERC20MetadataArtifact.abi];
-
-type NetworkConfig = {
-  wethAddress: `0x${string}`;
-  usdcAddress: `0x${string}`;
-  feeTier: number;
-  nativeSymbol: string;
-  wrappedSymbol: string;
-};
-
-const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
-  ronin: {
-    wethAddress: '0xe514d9deb7966c8be0ca922de8a064264ea6bcd4',
-    usdcAddress: '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc',
-    feeTier: 3000,
-    nativeSymbol: 'RON',
-    wrappedSymbol: 'WRON',
-  },
-  base: {
-    wethAddress: '0x4200000000000000000000000000000000000006',
-    usdcAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
-    feeTier: 3000,
-    nativeSymbol: 'ETH',
-    wrappedSymbol: 'WETH',
-  },
-  local: {
-    wethAddress: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
-    usdcAddress: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
-    feeTier: 3000,
-    nativeSymbol: 'TOKEN',
-    wrappedSymbol: 'TOKEN',
-  },
-};
 
 function formatAmount(amount: bigint, decimals: number): string {
   const divisor = 10n ** BigInt(decimals);

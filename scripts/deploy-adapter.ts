@@ -15,6 +15,7 @@ export async function deployAdapter(
     usdc?: string;
     weth?: string;
     owner?: string;
+    skipVerification?: boolean;
   } = {}
 ): Promise<DeployResult> {
   if (!['ronin', 'base', 'local1', 'local2'].includes(network)) {
@@ -62,7 +63,7 @@ export async function deployAdapter(
     constructorTypes = ['address'];
   }
 
-  const verification = getVerificationConfig(network);
+  const verification = options.skipVerification ? undefined : getVerificationConfig(network);
 
   const result = await deployWithCreate3(clients, {
     contractName,

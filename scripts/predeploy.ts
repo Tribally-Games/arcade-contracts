@@ -127,7 +127,7 @@ async function deployLocalDevnetContracts() {
     const adapterHash = await clients.walletClient.deployContract({
       abi: adapterArtifact.abi,
       bytecode: adapterArtifact.bytecode.object as Hex,
-      args: [wethAddress, KNOWN_USDC_ADDRESS, clients.account.address],
+      args: [wethAddress, KNOWN_USDC_ADDRESS],
       account: clients.account,
     });
 
@@ -190,7 +190,7 @@ async function main() {
     console.log('║     DEX Adapter Deployment             ║');
     console.log('╚════════════════════════════════════════╝\n');
 
-    const result = await deployAdapter(TARGET);
+    const result = await deployAdapter(TARGET, { skipVerification: true });
 
     if (result.alreadyDeployed) {
       console.log('\n✅ DEX Adapter already deployed');
