@@ -138,7 +138,7 @@ contract ConfigTest is TestBaseContract {
     IDiamondCut(diamond).diamondCut(
       cuts,
       address(init),
-      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer)
+      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(0x1))
     );
   }
 }
