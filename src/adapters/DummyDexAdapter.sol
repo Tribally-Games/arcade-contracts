@@ -30,6 +30,7 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
     error InsufficientLiquidity();
     error InsufficientOutputAmount();
     error InvalidToken();
+    error InvalidAmount();
 
     constructor(address _wrappedNativeToken, address _usdcToken) {
         if (_wrappedNativeToken == address(0) || _usdcToken == address(0)) {
@@ -124,7 +125,7 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
     }
 
     function addLiquidity(uint256 wethAmount, uint256 usdcAmount) external onlyOwner {
-        if (wethAmount == 0 || usdcAmount == 0) revert InvalidAddress();
+        if (wethAmount == 0 || usdcAmount == 0) revert InvalidAmount();
 
         IERC20(wrappedNativeToken).safeTransferFrom(msg.sender, address(this), wethAmount);
         IERC20(usdcToken).safeTransferFrom(msg.sender, address(this), usdcAmount);

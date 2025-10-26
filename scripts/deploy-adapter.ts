@@ -18,12 +18,12 @@ export async function deployAdapter(
     skipVerification?: boolean;
   } = {}
 ): Promise<DeployResult> {
-  if (!['ronin', 'base', 'local1', 'local2'].includes(network)) {
-    throw new Error(`Invalid network: ${network}. Valid networks: ronin, base, local1, local2`);
+  if (!['ronin', 'base', 'devnet1', 'devnet2'].includes(network)) {
+    throw new Error(`Invalid network: ${network}. Valid networks: ronin, base, devnet1, devnet2`);
   }
 
   const adapterType =
-    (network === 'local1' || network === 'local2') ? 'dummy'
+    (network === 'devnet1' || network === 'devnet2') ? 'dummy'
     : 'universal';
 
   const clients = createClients(network);
@@ -83,7 +83,7 @@ async function main() {
   program
     .name('deploy-adapter')
     .description('Deploy a DEX swap adapter contract using CREATE3')
-    .argument('<network>', 'Network to deploy to (ronin|base|local1|local2)')
+    .argument('<network>', 'Network to deploy to (ronin|base|devnet1|devnet2)')
     .option('--router <address>', 'DEX router address (optional, uses defaults)')
     .option('--usdc <address>', 'USDC token address (optional, uses defaults, for dummy adapter only)')
     .option('--weth <address>', 'WETH token address (optional, uses defaults, for dummy adapter only)')
@@ -93,7 +93,7 @@ async function main() {
   const options = program.opts();
 
   const adapterType =
-    (network === 'local1' || network === 'local2') ? 'dummy'
+    (network === 'devnet1' || network === 'devnet2') ? 'dummy'
     : 'universal';
   const routerType = network === 'base' ? 'Uniswap' : 'Katana';
   const clients = createClients(network);

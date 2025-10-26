@@ -75,10 +75,10 @@ module.exports = {
     },
   },
   networks: {
-    local1: {
+    devnet1: {
       rpcUrl: "http://localhost:8545",
     },
-    local2: {
+    devnet2: {
       rpcUrl: "http://localhost:8546",
     },
     base: {
@@ -106,23 +106,25 @@ module.exports = {
     }
   },
   targets: {
-    local1: {
-      network: "local1",
+    devnet1: {
+      network: "devnet1",
       wallet: "local_wallet",
       initArgs: [
         "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
         "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xc9CE9165a907059AE8BC2E3e86dE682Ae9AB30E4"
       ],
       create3Salt: SALT,
     },
-    local2: {
-      network: "local2",
+    devnet2: {
+      network: "devnet2",
       wallet: "local_wallet",
       initArgs: [
         "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
         "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xc9CE9165a907059AE8BC2E3e86dE682Ae9AB30E4"
       ],
       create3Salt: SALT,
     },

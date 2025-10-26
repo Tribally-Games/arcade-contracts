@@ -15,7 +15,7 @@ async function main() {
   program
     .name('test-gateway-deposit')
     .description('Test deposits and quotes through the Gateway')
-    .argument('<network>', 'Network (ronin|base|local1|local2)')
+    .argument('<network>', 'Network (ronin|base|devnet1|devnet2)')
     .argument('<diamond-address>', 'Diamond contract address')
     .argument('<token-type>', 'Token type: ron | wron | eth | weth | usdc')
     .argument('<amount>', 'Amount in token decimals')
@@ -28,9 +28,9 @@ async function main() {
   const [network, diamondAddressRaw, tokenType, amountStr] = program.args;
   const options = program.opts();
 
-  if (!['ronin', 'base', 'local1', 'local2'].includes(network)) {
+  if (!['ronin', 'base', 'devnet1', 'devnet2'].includes(network)) {
     console.error(`Invalid network: ${network}`);
-    console.error('Valid networks: ronin, base, local1, local2');
+    console.error('Valid networks: ronin, base, devnet1, devnet2');
     process.exit(1);
   }
 

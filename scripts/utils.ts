@@ -88,10 +88,10 @@ export function loadGemforgeConfig(): GemforgeConfig {
 
 export function getChainConfig(target: string, rpcUrl: string): Chain {
   switch (target) {
-    case 'local1':
+    case 'devnet1':
     case 'baseFork':
       return foundry;
-    case 'local2':
+    case 'devnet2':
       return createLocal2Chain(rpcUrl);
     case 'base':
       return base;

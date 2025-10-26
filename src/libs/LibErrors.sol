@@ -27,4 +27,6 @@ library LibErrors {
   error InvalidSwapAdapter();
 
   error SwapFailed();
+
+  error InvalidSwapOutput();
 }

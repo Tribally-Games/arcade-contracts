@@ -182,7 +182,7 @@ async function main() {
     throw new Error('GEMFORGE_DEPLOY_TARGET not set');
   }
 
-  if (TARGET === 'local1' || TARGET === 'local2') {
+  if (TARGET === 'devnet1' || TARGET === 'devnet2') {
     await deployLocalDevnetContracts();
   } else if (TARGET === 'ronin' || TARGET === 'base') {
     console.log(`Running predeploy script for ${TARGET} target...`);

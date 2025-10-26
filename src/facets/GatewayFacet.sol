@@ -56,12 +56,25 @@ contract GatewayFacet is ReentrancyGuard {
         IERC20(_token).forceApprove(s.swapAdapter, _amount);
       }
 
+      uint256 usdcBalanceBefore = IERC20(s.usdcToken).balanceOf(address(this));
+
       usdcAmount = IDexSwapAdapter(s.swapAdapter).swap{ value: isNative ? _amount : 0 }(
         _token,
         _amount,
         _minUsdcAmount,
         _swapData
       );
+
+      if (!isNative) {
+        IERC20(_token).forceApprove(s.swapAdapter, 0);
+      }
+
+      uint256 usdcBalanceAfter = IERC20(s.usdcToken).balanceOf(address(this));
+      uint256 usdcReceived = usdcBalanceAfter - usdcBalanceBefore;
+
+      if (usdcReceived != usdcAmount) {
+        revert LibErrors.InvalidSwapOutput();
+      }
 
       if (usdcAmount < _minUsdcAmount) {
         revert LibErrors.InsufficientUsdcReceived(usdcAmount, _minUsdcAmount);

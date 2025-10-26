@@ -59,7 +59,7 @@ export const TOKEN_CONFIGS: Record<string, NetworkTokens> = {
       decimals: 6,
     },
   },
-  local1: {
+  devnet1: {
     eth: {
       address: '0x0000000000000000000000000000000000000000',
       symbol: 'ETH',
@@ -81,7 +81,7 @@ export const TOKEN_CONFIGS: Record<string, NetworkTokens> = {
       decimals: 18,
     },
   },
-  local2: {
+  devnet2: {
     eth: {
       address: '0x0000000000000000000000000000000000000000',
       symbol: 'ETH',
@@ -112,10 +112,10 @@ export const DEX_ROUTERS: Record<string, { katana?: `0x${string}`; uniswap?: `0x
   base: {
     uniswap: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
   },
-  local1: {
+  devnet1: {
     dummy: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
   },
-  local2: {
+  devnet2: {
     dummy: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
   },
 };

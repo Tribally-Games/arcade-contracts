@@ -78,12 +78,12 @@ contract DummyDexAdapterTest is Test {
     }
 
     function test_AddLiquidity_RevertsWhenWethAmountIsZero() public {
-        vm.expectRevert(DummyDexAdapter.InvalidAddress.selector);
+        vm.expectRevert(DummyDexAdapter.InvalidAmount.selector);
         adapter.addLiquidity(0, 2000e6);
     }
 
     function test_AddLiquidity_RevertsWhenUsdcAmountIsZero() public {
-        vm.expectRevert(DummyDexAdapter.InvalidAddress.selector);
+        vm.expectRevert(DummyDexAdapter.InvalidAmount.selector);
         adapter.addLiquidity(1 ether, 0);
     }
 

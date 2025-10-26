@@ -9,6 +9,8 @@ import { DummyDexAdapter } from "src/adapters/DummyDexAdapter.sol";
 import { MockWETH } from "src/mocks/MockWETH.sol";
 import { IDiamondCut } from "lib/diamond-2-hardhat/contracts/interfaces/IDiamondCut.sol";
 import { ConfigFacet } from "src/facets/ConfigFacet.sol";
+import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IGatewayFacet {
   function gatewayPoolBalance() external view returns (uint);
@@ -354,6 +356,36 @@ contract GatewayTest is TestBaseContract {
     configFacet.updateSwapAdapter(address(0));
   }
 
+  function test_Deposit_RevokesApprovalAfterSwap() public {
+    uint256 amount = 1 ether;
+
+    vm.startPrank(account1);
+    weth.approve(diamond, amount);
+    gatewayFacet.deposit(account1, address(weth), amount, 0, "");
+    vm.stopPrank();
+
+    uint256 allowance = weth.allowance(diamond, address(swapAdapter));
+    assertEq(allowance, 0, "Approval should be revoked after swap");
+  }
+
+  function test_Deposit_ValidatesSwapOutput() public {
+    MaliciousSwapAdapter maliciousAdapter = new MaliciousSwapAdapter(address(weth), address(usdcToken), address(otherToken));
+
+    vm.prank(owner);
+    configFacet.updateSwapAdapter(address(maliciousAdapter));
+
+    usdcToken.mint(address(maliciousAdapter), 1000e6);
+    otherToken.mint(address(maliciousAdapter), 1000 ether);
+
+    uint256 amount = 1 ether;
+
+    vm.startPrank(account1);
+    weth.approve(diamond, amount);
+    vm.expectRevert(LibErrors.InvalidSwapOutput.selector);
+    gatewayFacet.deposit(account1, address(weth), amount, 0, "");
+    vm.stopPrank();
+  }
+
   function _setupDeposit() internal {
     vm.startPrank(account1);
     usdcToken.approve(diamond, 100);
@@ -363,5 +395,39 @@ contract GatewayTest is TestBaseContract {
     assertEq(usdcToken.balanceOf(account1), 100_000e6 - 100);
     assertEq(usdcToken.balanceOf(diamond), 100);
     assertEq(gatewayFacet.gatewayPoolBalance(), 100);
+  }
+}
+
+contract MaliciousSwapAdapter {
+  using SafeERC20 for IERC20;
+
+  address public immutable weth;
+  address public immutable usdc;
+  address public immutable maliciousToken;
+
+  constructor(address _weth, address _usdc, address _maliciousToken) {
+    weth = _weth;
+    usdc = _usdc;
+    maliciousToken = _maliciousToken;
+  }
+
+  function swap(
+    address tokenIn,
+    uint256 amountIn,
+    uint256,
+    bytes calldata
+  ) external payable returns (uint256 amountOut) {
+    if (tokenIn != address(0)) {
+      IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+    }
+
+    amountOut = 1000e6;
+    IERC20(maliciousToken).safeTransfer(msg.sender, 1000 ether);
+
+    return amountOut;
+  }
+
+  function getQuote(address, uint256, bytes calldata) external pure returns (uint256) {
+    return 1000e6;
   }
 }
