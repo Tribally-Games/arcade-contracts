@@ -31,15 +31,15 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
     error InsufficientOutputAmount();
     error InvalidToken();
 
-    constructor(address _wrappedNativeToken, address _usdcToken, address _owner) {
-        if (_wrappedNativeToken == address(0) || _usdcToken == address(0) || _owner == address(0)) {
+    constructor(address _wrappedNativeToken, address _usdcToken) {
+        if (_wrappedNativeToken == address(0) || _usdcToken == address(0)) {
             revert InvalidAddress();
         }
 
         wrappedNativeToken = _wrappedNativeToken;
         usdcToken = _usdcToken;
 
-        _transferOwnership(_owner);
+        _transferOwnership(msg.sender);
     }
 
     function swap(

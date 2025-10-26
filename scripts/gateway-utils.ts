@@ -1,11 +1,10 @@
-import { parseAbi, encodePacked } from 'viem';
+import { encodePacked } from 'viem';
 import DIAMOND_ABI from '../src/generated/abi.json';
+import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
 
 export { DIAMOND_ABI };
 
-export const ADAPTER_ABI = parseAbi([
-  'function swap(address,uint256,uint256,bytes) payable returns (uint256)',
-]);
+export const ADAPTER_ABI = IDexSwapAdapterArtifact.abi;
 
 export type TokenConfig = {
   address: `0x${string}`;

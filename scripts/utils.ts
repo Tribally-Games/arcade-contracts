@@ -5,41 +5,52 @@ import { foundry, base } from 'viem/chains';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const ronin: Chain = {
-  id: 2020,
-  name: 'Ronin',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'RON',
-    symbol: 'RON',
-  },
-  rpcUrls: {
-    default: { http: ['https://api.roninchain.com/rpc'] },
-    public: { http: ['https://api.roninchain.com/rpc'] },
-  },
-  blockExplorers: {
-    default: { name: 'Ronin Explorer', url: 'https://app.roninchain.com' },
-  },
-};
+function createRoninChain(rpcUrl: string): Chain {
+  return {
+    id: 2020,
+    name: 'Ronin',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'RON',
+      symbol: 'RON',
+    },
+    rpcUrls: {
+      default: { http: [rpcUrl] },
+      public: { http: [rpcUrl] },
+    },
+    blockExplorers: {
+      default: { name: 'Ronin Explorer', url: 'https://app.roninchain.com' },
+    },
+  };
+}
 
-const local2: Chain = {
-  id: 31338,
-  name: 'Local Devnet 2',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
-  },
-  rpcUrls: {
-    default: { http: ['http://localhost:8546'] },
-    public: { http: ['http://localhost:8546'] },
-  },
-};
+function createLocal2Chain(rpcUrl: string): Chain {
+  return {
+    id: 31338,
+    name: 'Local Devnet 2',
+    nativeCurrency: {
+      decimals: 18,
+      name: 'Ether',
+      symbol: 'ETH',
+    },
+    rpcUrls: {
+      default: { http: [rpcUrl] },
+      public: { http: [rpcUrl] },
+    },
+  };
+}
 
 export interface ClientSetup {
   publicClient: ReturnType<typeof createPublicClient>;
   walletClient: ReturnType<typeof createWalletClient>;
   account: Account;
+}
+
+export interface VerificationConfig {
+  apiUrl: string;
+  apiKey: string;
+  chainId?: number;
+  verifier?: string;
 }
 
 export interface GemforgeConfig {
@@ -52,6 +63,14 @@ export interface GemforgeConfig {
   networks: {
     [key: string]: {
       rpcUrl: string;
+      contractVerification?: {
+        foundry: {
+          apiUrl: string;
+          apiKey: string;
+          chainId?: number;
+          verifier?: string;
+        };
+      };
     };
   };
   targets: {
@@ -67,17 +86,17 @@ export function loadGemforgeConfig(): GemforgeConfig {
   return require(configPath);
 }
 
-export function getChainConfig(target: string): Chain {
+export function getChainConfig(target: string, rpcUrl: string): Chain {
   switch (target) {
     case 'local1':
     case 'baseFork':
       return foundry;
     case 'local2':
-      return local2;
+      return createLocal2Chain(rpcUrl);
     case 'base':
       return base;
     case 'ronin':
-      return ronin;
+      return createRoninChain(rpcUrl);
     default:
       throw new Error(`Unknown target: ${target}`);
   }
@@ -135,8 +154,8 @@ export function loadWallet(target: string): Account {
 }
 
 export function createClients(target: string, rpcUrl?: string): ClientSetup {
-  const chain = getChainConfig(target);
   const finalRpcUrl = getRpcUrl(target, rpcUrl);
+  const chain = getChainConfig(target, finalRpcUrl);
   const account = loadWallet(target);
 
   const publicClient = createPublicClient({
@@ -151,4 +170,33 @@ export function createClients(target: string, rpcUrl?: string): ClientSetup {
   });
 
   return { publicClient, walletClient, account };
+}
+
+export function getVerificationConfig(target: string): VerificationConfig | null {
+  const config = loadGemforgeConfig();
+  const targetConfig = config.targets[target];
+
+  if (!targetConfig) {
+    return null;
+  }
+
+  const networkName = targetConfig.network;
+  const networkConfig = config.networks[networkName];
+
+  if (!networkConfig?.contractVerification?.foundry) {
+    return null;
+  }
+
+  const verification = networkConfig.contractVerification.foundry;
+
+  if (!verification.apiUrl) {
+    return null;
+  }
+
+  return {
+    apiUrl: verification.apiUrl,
+    apiKey: verification.apiKey || '',
+    chainId: verification.chainId,
+    verifier: verification.verifier,
+  };
 }

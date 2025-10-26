@@ -94,7 +94,8 @@ abstract contract TestBaseContract is Test {
     usdcToken = new MockERC20();
 
     MockWETH weth = new MockWETH();
-    DummyDexAdapter swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
+    vm.prank(owner);
+    DummyDexAdapter swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken));
 
     InitDiamond init = new InitDiamond();
     IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(swapAdapter)));

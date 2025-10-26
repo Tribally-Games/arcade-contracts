@@ -26,7 +26,9 @@ contract UniswapV3SwapAdapterTest is Test {
         weth = new TestERC20("Wrapped Ether", "WETH", 18);
         usdc = new TestERC20("USD Coin", "USDC", 6);
         router = new MockUniswapV3Router(address(usdc));
-        adapter = new UniswapV3SwapAdapter(address(router), address(usdc), owner);
+
+        vm.prank(owner);
+        adapter = new UniswapV3SwapAdapter(address(router));
 
         usdc.mint(address(router), INITIAL_ROUTER_USDC);
 
@@ -39,22 +41,19 @@ contract UniswapV3SwapAdapterTest is Test {
 
     function test_Constructor_RevertsWhenRouterIsZeroAddress() public {
         vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
-        new UniswapV3SwapAdapter(address(0), address(usdc), owner);
-    }
-
-    function test_Constructor_RevertsWhenUsdcIsZeroAddress() public {
-        vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
-        new UniswapV3SwapAdapter(address(router), address(0), owner);
-    }
-
-    function test_Constructor_RevertsWhenOwnerIsZeroAddress() public {
-        vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
-        new UniswapV3SwapAdapter(address(router), address(usdc), address(0));
+        new UniswapV3SwapAdapter(address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
         assertEq(adapter.swapRouter(), address(router));
         assertEq(adapter.owner(), owner);
+    }
+
+    function test_Constructor_SetsDeployerAsOwner() public {
+        address deployer = address(0x1111);
+        vm.prank(deployer);
+        UniswapV3SwapAdapter newAdapter = new UniswapV3SwapAdapter(address(router));
+        assertEq(newAdapter.owner(), deployer);
     }
 
     function test_Swap_Success() public {

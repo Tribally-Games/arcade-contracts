@@ -12,7 +12,6 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
     using SafeERC20 for IERC20;
 
     address public immutable katanaRouter;
-    address private immutable usdcToken;
 
     address private constant ADDRESS_THIS = address(2);
 
@@ -20,15 +19,12 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
 
     error InvalidAddress();
 
-    constructor(address _katanaRouter, address _usdcToken, address _owner) {
-        if (_katanaRouter == address(0) || _usdcToken == address(0) || _owner == address(0)) {
-            revert InvalidAddress();
-        }
+    constructor(address _katanaRouter) {
+        if (_katanaRouter == address(0)) revert InvalidAddress();
 
         katanaRouter = _katanaRouter;
-        usdcToken = _usdcToken;
 
-        _transferOwnership(_owner);
+        _transferOwnership(msg.sender);
     }
 
     function swap(
@@ -37,7 +33,8 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
         uint256 amountOutMinimum,
         bytes calldata path
     ) external payable override returns (uint256 amountOut) {
-        uint256 usdcBalanceBefore = IERC20(usdcToken).balanceOf(address(this));
+        address tokenOut = _extractOutputToken(path);
+        uint256 balanceBefore = IERC20(tokenOut).balanceOf(address(this));
 
         bool isNative = tokenIn == address(0);
 
@@ -80,12 +77,18 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
             IKatanaRouter(katanaRouter).execute(commands, inputs, block.timestamp + 300);
         }
 
-        uint256 usdcBalanceAfter = IERC20(usdcToken).balanceOf(address(this));
-        amountOut = usdcBalanceAfter - usdcBalanceBefore;
+        uint256 balanceAfter = IERC20(tokenOut).balanceOf(address(this));
+        amountOut = balanceAfter - balanceBefore;
 
-        IERC20(usdcToken).safeTransfer(msg.sender, amountOut);
+        IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
 
         return amountOut;
+    }
+
+    function _extractOutputToken(bytes calldata path) private pure returns (address tokenOut) {
+        assembly {
+            tokenOut := shr(96, calldataload(add(path.offset, sub(path.length, 20))))
+        }
     }
 
     function rescueTokens(address _token, uint256 _amount) external onlyOwner {

@@ -26,7 +26,9 @@ contract DummyDexAdapterTest is Test {
     function setUp() public {
         weth = new MockWETH();
         usdc = new TestERC20("USD Coin", "USDC", 6);
-        adapter = new DummyDexAdapter(address(weth), address(usdc), owner);
+
+        vm.prank(owner);
+        adapter = new DummyDexAdapter(address(weth), address(usdc));
 
         usdc.mint(owner, INITIAL_USDC_LIQUIDITY * 2);
         weth.deposit{ value: INITIAL_WETH_LIQUIDITY * 2 }();
@@ -48,23 +50,25 @@ contract DummyDexAdapterTest is Test {
 
     function test_Constructor_RevertsWhenWethIsZeroAddress() public {
         vm.expectRevert(DummyDexAdapter.InvalidAddress.selector);
-        new DummyDexAdapter(address(0), address(usdc), owner);
+        new DummyDexAdapter(address(0), address(usdc));
     }
 
     function test_Constructor_RevertsWhenUsdcIsZeroAddress() public {
         vm.expectRevert(DummyDexAdapter.InvalidAddress.selector);
-        new DummyDexAdapter(address(weth), address(0), owner);
-    }
-
-    function test_Constructor_RevertsWhenOwnerIsZeroAddress() public {
-        vm.expectRevert(DummyDexAdapter.InvalidAddress.selector);
-        new DummyDexAdapter(address(weth), address(usdc), address(0));
+        new DummyDexAdapter(address(weth), address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
         assertEq(adapter.wrappedNativeToken(), address(weth));
         assertEq(adapter.usdcToken(), address(usdc));
         assertEq(adapter.owner(), owner);
+    }
+
+    function test_Constructor_SetsDeployerAsOwner() public {
+        address deployer = address(0x1111);
+        vm.prank(deployer);
+        DummyDexAdapter newAdapter = new DummyDexAdapter(address(weth), address(usdc));
+        assertEq(newAdapter.owner(), deployer);
     }
 
     function test_AddLiquidity_RevertsWhenNotOwner() public {
@@ -283,7 +287,8 @@ contract DummyDexAdapterTest is Test {
     }
 
     function test_Swap_RevertsWhenNoLiquidity() public {
-        DummyDexAdapter emptyAdapter = new DummyDexAdapter(address(weth), address(usdc), owner);
+        vm.prank(owner);
+        DummyDexAdapter emptyAdapter = new DummyDexAdapter(address(weth), address(usdc));
 
         vm.prank(user);
         vm.expectRevert(DummyDexAdapter.InsufficientLiquidity.selector);

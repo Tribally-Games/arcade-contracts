@@ -1,5 +1,5 @@
 import { getContract, encodeAbiParameters, parseAbiParameters, type Hex } from 'viem';
-import { ClientSetup } from './utils';
+import { ClientSetup, type VerificationConfig } from './utils';
 import {
   FACTORY_DEPLOYED_ADDRESS,
   FACTORY_ABI,
@@ -10,6 +10,7 @@ import {
 } from './create3';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { spawn } from 'child_process';
 
 export interface DeployConfig {
   contractName: string;
@@ -17,6 +18,7 @@ export interface DeployConfig {
   constructorArgs: any[];
   constructorTypes: string[];
   salt: Hex;
+  verification?: VerificationConfig;
 }
 
 export interface DeployResult {
@@ -24,6 +26,8 @@ export interface DeployResult {
   alreadyDeployed: boolean;
   txHash?: Hex;
   gasUsed?: bigint;
+  verified?: boolean;
+  verificationError?: string;
 }
 
 export async function checkCreate3Factory(clients: ClientSetup): Promise<boolean> {
@@ -147,6 +151,76 @@ export async function ensureCreate3Factory(clients: ClientSetup): Promise<void> 
   }
 }
 
+async function verifyContract(
+  address: Hex,
+  contractName: string,
+  contractPath: string,
+  constructorArgs: any[],
+  constructorTypes: string[],
+  verification: VerificationConfig
+): Promise<{ success: boolean; error?: string }> {
+  console.log('\n🔍 Verifying contract on block explorer...');
+
+  const encodedArgs =
+    constructorArgs.length > 0
+      ? encodeAbiParameters(parseAbiParameters(constructorTypes.join(',')), constructorArgs)
+      : ('0x' as Hex);
+
+  const contractIdentifier = `src/adapters/${contractPath}:${contractName}`;
+
+  const args = [
+    'verify-contract',
+    address,
+    contractIdentifier,
+    '--verifier-url',
+    verification.apiUrl,
+    '--etherscan-api-key',
+    verification.apiKey,
+  ];
+
+  if (verification.verifier) {
+    args.push('--verifier', verification.verifier);
+  }
+
+  if (encodedArgs !== '0x') {
+    args.push('--constructor-args', encodedArgs);
+  }
+
+  if (verification.chainId) {
+    args.push('--chain', verification.chainId.toString());
+  }
+
+  return new Promise((resolve) => {
+    const process = spawn('forge', args, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    process.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    process.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    process.on('close', (code) => {
+      const output = stdout + stderr;
+
+      if (code === 0 || output.includes('already verified')) {
+        console.log('✅ Contract verified successfully!');
+        resolve({ success: true });
+      } else {
+        const errorMsg = output || `Verification failed with code ${code}`;
+        console.log(`⚠️  Verification failed: ${errorMsg}`);
+        resolve({ success: false, error: errorMsg });
+      }
+    });
+  });
+}
+
 export async function deployWithCreate3(
   clients: ClientSetup,
   config: DeployConfig
@@ -156,48 +230,66 @@ export async function deployWithCreate3(
   await ensureCreate3Factory(clients);
 
   const predictedAddress = await getPredictedAddress(clients, account.address, config.salt);
+  const alreadyDeployed = await isContractDeployed(clients, predictedAddress);
 
-  if (await isContractDeployed(clients, predictedAddress)) {
-    return {
-      address: predictedAddress,
-      alreadyDeployed: true,
-    };
+  let txHash: Hex | undefined;
+  let gasUsed: bigint | undefined;
+
+  if (!alreadyDeployed) {
+    const artifactPath = join(
+      process.cwd(),
+      'out',
+      config.contractPath,
+      `${config.contractName}.json`
+    );
+    const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
+
+    const constructorData =
+      config.constructorArgs.length > 0
+        ? encodeAbiParameters(
+            parseAbiParameters(config.constructorTypes.join(',')),
+            config.constructorArgs
+          )
+        : ('0x' as Hex);
+
+    const deployData = `${artifact.bytecode.object}${
+      constructorData === '0x' ? '' : constructorData.slice(2)
+    }` as Hex;
+
+    const create3Factory = getContract({
+      address: FACTORY_DEPLOYED_ADDRESS,
+      abi: FACTORY_ABI,
+      client: { public: publicClient, wallet: walletClient },
+    });
+
+    txHash = await create3Factory.write.deploy([config.salt, deployData]);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    gasUsed = receipt.gasUsed;
   }
 
-  const artifactPath = join(
-    process.cwd(),
-    'out',
-    config.contractPath,
-    `${config.contractName}.json`
-  );
-  const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
+  let verified: boolean | undefined;
+  let verificationError: string | undefined;
 
-  const constructorData =
-    config.constructorArgs.length > 0
-      ? encodeAbiParameters(
-          parseAbiParameters(config.constructorTypes.join(',')),
-          config.constructorArgs
-        )
-      : ('0x' as Hex);
-
-  const deployData = `${artifact.bytecode.object}${
-    constructorData === '0x' ? '' : constructorData.slice(2)
-  }` as Hex;
-
-  const create3Factory = getContract({
-    address: FACTORY_DEPLOYED_ADDRESS,
-    abi: FACTORY_ABI,
-    client: { public: publicClient, wallet: walletClient },
-  });
-
-  const tx = await create3Factory.write.deploy([config.salt, deployData]);
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+  if (config.verification) {
+    const result = await verifyContract(
+      predictedAddress,
+      config.contractName,
+      config.contractPath,
+      config.constructorArgs,
+      config.constructorTypes,
+      config.verification
+    );
+    verified = result.success;
+    verificationError = result.error;
+  }
 
   return {
     address: predictedAddress,
-    alreadyDeployed: false,
-    txHash: tx,
-    gasUsed: receipt.gasUsed,
+    alreadyDeployed,
+    txHash,
+    gasUsed,
+    verified,
+    verificationError,
   };
 }
 

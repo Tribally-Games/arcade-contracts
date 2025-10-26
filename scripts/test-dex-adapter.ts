@@ -1,22 +1,14 @@
 #!/usr/bin/env bun
 
-import { parseAbi, getContract, encodePacked, encodeFunctionData } from 'viem';
+import { getContract, encodePacked, encodeFunctionData } from 'viem';
 import { Command } from 'commander';
 import { createClients } from './utils';
+import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
+import IERC20Artifact from '../out/IERC20.sol/IERC20.json';
+import IERC20MetadataArtifact from '../out/IERC20Metadata.sol/IERC20Metadata.json';
 
-const ADAPTER_ABI = parseAbi([
-  'function swap(address,uint256,uint256,bytes) returns (uint256)',
-  'function usdcToken() view returns (address)',
-]);
-
-const ERC20_ABI = parseAbi([
-  'function approve(address,uint256) returns (bool)',
-  'function allowance(address,address) view returns (uint256)',
-  'function balanceOf(address) view returns (uint256)',
-  'function transfer(address,uint256) returns (bool)',
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-]);
+const ADAPTER_ABI = IDexSwapAdapterArtifact.abi;
+const ERC20_ABI = [...IERC20Artifact.abi, ...IERC20MetadataArtifact.abi];
 
 type NetworkConfig = {
   wethAddress: `0x${string}`;
@@ -123,9 +115,8 @@ async function main() {
     client: { public: publicClient, wallet: walletClient },
   });
 
-  const usdcToken = await adapter.read.usdcToken();
   const usdcContract = getContract({
-    address: usdcToken,
+    address: networkConfig.usdcAddress,
     abi: ERC20_ABI,
     client: { public: publicClient },
   });
@@ -145,7 +136,7 @@ async function main() {
   console.log(`Adapter:        ${adapterAddress}`);
   console.log(`Token In:       ${tokenIn} (${tokenSymbol})`);
   console.log(`Amount In:      ${amountIn} (${formatAmount(amountIn, tokenDecimals)} ${tokenSymbol})`);
-  console.log(`USDC Token:     ${usdcToken} (${usdcSymbol})`);
+  console.log(`USDC Token:     ${networkConfig.usdcAddress} (${usdcSymbol})`);
   console.log(`Swap Path:      ${swapPath}`);
   if (minUsdcOut > 0n) {
     console.log(`Min USDC Out:   ${minUsdcOut} (${formatAmount(minUsdcOut, usdcDecimals)} ${usdcSymbol})`);

@@ -1,17 +1,13 @@
 #!/usr/bin/env bun
 
-import { parseAbi, getContract, encodeFunctionData, decodeAbiParameters } from 'viem';
+import { getContract, encodeFunctionData, decodeAbiParameters } from 'viem';
 import { Command } from 'commander';
 import { createClients } from './utils';
 import { DIAMOND_ABI, getTokenConfig, formatTokenAmount, isNativeToken, buildSwapPath } from './gateway-utils';
+import IERC20Artifact from '../out/IERC20.sol/IERC20.json';
+import IERC20MetadataArtifact from '../out/IERC20Metadata.sol/IERC20Metadata.json';
 
-const ERC20_ABI = parseAbi([
-  'function approve(address,uint256) returns (bool)',
-  'function allowance(address,address) view returns (uint256)',
-  'function balanceOf(address) view returns (uint256)',
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)',
-]);
+const ERC20_ABI = [...IERC20Artifact.abi, ...IERC20MetadataArtifact.abi];
 
 async function main() {
   const program = new Command();

@@ -50,7 +50,8 @@ contract GatewayTest is TestBaseContract {
     configFacet = IConfigFacet(diamond);
 
     weth = new MockWETH();
-    swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
+    vm.prank(owner);
+    swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken));
     otherToken = new MockERC20();
 
 

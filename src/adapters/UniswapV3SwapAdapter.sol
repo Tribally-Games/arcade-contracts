@@ -10,10 +10,8 @@ contract UniswapV3SwapAdapter is IDexSwapAdapter {
     using SafeERC20 for IERC20;
 
     address public immutable swapRouter;
-    address private immutable usdcToken;
     address public owner;
 
-    event RouterUpdated(address indexed oldRouter, address indexed newRouter);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event TokensRescued(address indexed token, address indexed to, uint256 amount);
 
@@ -25,14 +23,11 @@ contract UniswapV3SwapAdapter is IDexSwapAdapter {
         _;
     }
 
-    constructor(address _swapRouter, address _usdcToken, address _owner) {
-        if (_swapRouter == address(0) || _usdcToken == address(0) || _owner == address(0)) {
-            revert InvalidAddress();
-        }
+    constructor(address _swapRouter) {
+        if (_swapRouter == address(0)) revert InvalidAddress();
 
         swapRouter = _swapRouter;
-        usdcToken = _usdcToken;
-        owner = _owner;
+        owner = msg.sender;
     }
 
     function swap(
@@ -53,9 +48,16 @@ contract UniswapV3SwapAdapter is IDexSwapAdapter {
 
         amountOut = IV3SwapRouter(swapRouter).exactInput(params);
 
-        IERC20(usdcToken).safeTransfer(msg.sender, amountOut);
+        address tokenOut = _extractOutputToken(path);
+        IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
 
         return amountOut;
+    }
+
+    function _extractOutputToken(bytes calldata path) private pure returns (address tokenOut) {
+        assembly {
+            tokenOut := shr(96, calldataload(add(path.offset, sub(path.length, 20))))
+        }
     }
 
     function rescueTokens(address _token, uint256 _amount) external onlyOwner {

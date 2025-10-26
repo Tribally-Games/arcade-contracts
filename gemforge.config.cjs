@@ -100,6 +100,7 @@ module.exports = {
           apiUrl: "https://sourcify.roninchain.com/server/",
           apiKey: process.env.ETHERSCAN_API_KEY || '',
           chainId: 2020,
+          verifier: 'sourcify',
         },
       },
     }
@@ -131,7 +132,8 @@ module.exports = {
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-        "0x000000000000000000000000000000000000dead"
+        "0x000000000000000000000000000000000000dead",
+        "0x7370ad0dcDf557F386dcbed8C740aB92D972e467"
       ],
       create3Salt: SALT,
       upgrades: {
@@ -152,7 +154,8 @@ module.exports = {
       initArgs: [
         "0x5f0acdd3ec767514ff1bf7e79949640bf94576bd",
         "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
-        "0x000000000000000000000000000000000000dead"
+        "0x000000000000000000000000000000000000dead",
+        "0x7370ad0dcDf557F386dcbed8C740aB92D972e467"
       ],
       create3Salt: SALT,
       upgrades: {

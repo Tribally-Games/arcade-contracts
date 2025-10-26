@@ -26,7 +26,9 @@ contract KatanaSwapAdapterTest is Test {
         weth = new MockWETH();
         usdc = new TestERC20("USD Coin", "USDC", 6);
         router = new MockKatanaRouter(address(weth), address(usdc));
-        adapter = new KatanaSwapAdapter(address(router), address(usdc), owner);
+
+        vm.prank(owner);
+        adapter = new KatanaSwapAdapter(address(router));
 
         usdc.mint(address(router), INITIAL_ROUTER_USDC);
 
@@ -41,22 +43,19 @@ contract KatanaSwapAdapterTest is Test {
 
     function test_Constructor_RevertsWhenRouterIsZeroAddress() public {
         vm.expectRevert(KatanaSwapAdapter.InvalidAddress.selector);
-        new KatanaSwapAdapter(address(0), address(usdc), owner);
-    }
-
-    function test_Constructor_RevertsWhenUsdcIsZeroAddress() public {
-        vm.expectRevert(KatanaSwapAdapter.InvalidAddress.selector);
-        new KatanaSwapAdapter(address(router), address(0), owner);
-    }
-
-    function test_Constructor_RevertsWhenOwnerIsZeroAddress() public {
-        vm.expectRevert(KatanaSwapAdapter.InvalidAddress.selector);
-        new KatanaSwapAdapter(address(router), address(usdc), address(0));
+        new KatanaSwapAdapter(address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
         assertEq(adapter.katanaRouter(), address(router));
         assertEq(adapter.owner(), owner);
+    }
+
+    function test_Constructor_SetsDeployerAsOwner() public {
+        address deployer = address(0x1111);
+        vm.prank(deployer);
+        KatanaSwapAdapter newAdapter = new KatanaSwapAdapter(address(router));
+        assertEq(newAdapter.owner(), deployer);
     }
 
     function test_Swap_NativeToken_Success() public {
@@ -193,16 +192,6 @@ contract KatanaSwapAdapterTest is Test {
         adapter.rescueTokens(address(weth), rescueAmount);
 
         assertEq(weth.balanceOf(owner), ownerBalanceBefore + rescueAmount);
-    }
-
-    function test_Swap_AcceptsEmptyPath() public {
-        uint256 amountIn = 1 ether;
-        bytes memory emptyPath = "";
-
-        vm.prank(user);
-        uint256 amountOut = adapter.swap{ value: amountIn }(address(0), amountIn, 0, emptyPath);
-
-        assertGt(amountOut, 0);
     }
 
     function test_Swap_LargeAmount() public {
