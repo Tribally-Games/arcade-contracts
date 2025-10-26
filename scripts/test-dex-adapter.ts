@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
-import { parseAbi, getContract, formatUnits } from 'viem';
+import { parseAbi, getContract, encodePacked, encodeFunctionData } from 'viem';
+import { Command } from 'commander';
 import { createClients } from './utils';
 
 const ADAPTER_ABI = parseAbi([
@@ -10,11 +11,44 @@ const ADAPTER_ABI = parseAbi([
 
 const ERC20_ABI = parseAbi([
   'function approve(address,uint256) returns (bool)',
+  'function allowance(address,address) view returns (uint256)',
   'function balanceOf(address) view returns (uint256)',
   'function transfer(address,uint256) returns (bool)',
   'function decimals() view returns (uint8)',
   'function symbol() view returns (string)',
 ]);
+
+type NetworkConfig = {
+  wethAddress: `0x${string}`;
+  usdcAddress: `0x${string}`;
+  feeTier: number;
+  nativeSymbol: string;
+  wrappedSymbol: string;
+};
+
+const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
+  ronin: {
+    wethAddress: '0xe514d9deb7966c8be0ca922de8a064264ea6bcd4',
+    usdcAddress: '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc',
+    feeTier: 3000,
+    nativeSymbol: 'RON',
+    wrappedSymbol: 'WRON',
+  },
+  base: {
+    wethAddress: '0x4200000000000000000000000000000000000006',
+    usdcAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    feeTier: 3000,
+    nativeSymbol: 'ETH',
+    wrappedSymbol: 'WETH',
+  },
+  local: {
+    wethAddress: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
+    usdcAddress: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+    feeTier: 3000,
+    nativeSymbol: 'TOKEN',
+    wrappedSymbol: 'TOKEN',
+  },
+};
 
 function formatAmount(amount: bigint, decimals: number): string {
   const divisor = 10n ** BigInt(decimals);
@@ -25,36 +59,57 @@ function formatAmount(amount: bigint, decimals: number): string {
 }
 
 async function main() {
-  const target = process.argv[2];
-  const quoteOnly = process.argv.includes('--quote-only');
+  const program = new Command();
 
-  if (!target) {
-    console.error('Usage: bun test-dex-adapter.ts <ronin|base|local> [--quote-only]');
-    console.error('');
-    console.error('Required environment variables:');
-    console.error('  DEX_ADAPTER       - Adapter contract address');
-    console.error('  TOKEN_IN          - Input token address');
-    console.error('  AMOUNT_IN         - Amount to swap (in token decimals)');
-    console.error('  SWAP_PATH         - Encoded swap path');
-    console.error('');
-    console.error('Optional environment variables:');
-    console.error('  MIN_USDC_OUT      - Minimum USDC expected (for real swaps)');
+  program
+    .name('test-dex-adapter')
+    .description('Test DEX adapter swaps on different networks')
+    .argument('<network>', 'Network to use (ronin|base|local)')
+    .argument('<adapter-address>', 'DEX adapter contract address')
+    .argument('<token-type>', 'Token type to swap (ron|wron on Ronin, eth|weth on Base, token on local)')
+    .argument('<amount-in>', 'Amount to swap (in token decimals, e.g., 100000000000000000 for 0.1 tokens)')
+    .option('-m, --min-usdc-out <amount>', 'Minimum USDC expected', '0')
+    .option('-q, --quote', 'Get swap quote without executing transaction', false)
+    .parse();
+
+  const [network, adapterAddressRaw, tokenType, amountInStr] = program.args;
+  const options = program.opts();
+  const minUsdcOut = BigInt(options.minUsdcOut);
+  const amountIn = BigInt(amountInStr);
+  const adapterAddress = adapterAddressRaw as `0x${string}`;
+  const isQuoteMode = options.quote;
+
+  if (!NETWORK_CONFIGS[network]) {
+    console.error(`Invalid network: ${network}`);
+    console.error('Valid networks: ronin, base, local');
     process.exit(1);
   }
 
-  const { publicClient, walletClient, account } = createClients(target);
+  const networkConfig = NETWORK_CONFIGS[network];
 
-  const adapterAddress = process.env.DEX_ADAPTER as `0x${string}`;
-  const tokenIn = process.env.TOKEN_IN as `0x${string}`;
-  const amountIn = BigInt(process.env.AMOUNT_IN!);
-  const swapPath = process.env.SWAP_PATH as `0x${string}`;
-  const minUsdcOut = process.env.MIN_USDC_OUT ? BigInt(process.env.MIN_USDC_OUT) : 0n;
+  const tokenTypeLower = tokenType.toLowerCase();
+  const validTokenTypes = network === 'ronin'
+    ? ['ron', 'wron']
+    : network === 'base'
+    ? ['eth', 'weth']
+    : ['token'];
 
-  if (!adapterAddress || !tokenIn || !amountIn || !swapPath) {
-    console.error('Missing required environment variables');
-    console.error('Please set: DEX_ADAPTER, TOKEN_IN, AMOUNT_IN, SWAP_PATH');
+  if (!validTokenTypes.includes(tokenTypeLower)) {
+    console.error(`Invalid token type: ${tokenType}`);
+    console.error(`Valid token types for ${network}: ${validTokenTypes.join(', ')}`);
     process.exit(1);
   }
+
+  const isNative = tokenTypeLower === 'ron' || tokenTypeLower === 'eth';
+  const tokenIn: `0x${string}` = isNative ? '0x0000000000000000000000000000000000000000' : networkConfig.wethAddress;
+  const tokenSymbol = isNative ? networkConfig.nativeSymbol : networkConfig.wrappedSymbol;
+
+  const { publicClient, walletClient, account } = createClients(network);
+
+  const swapPath = encodePacked(
+    ['address', 'uint24', 'address'],
+    [networkConfig.wethAddress, networkConfig.feeTier, networkConfig.usdcAddress]
+  );
 
   const adapter = getContract({
     address: adapterAddress,
@@ -62,7 +117,7 @@ async function main() {
     client: { public: publicClient, wallet: walletClient },
   });
 
-  const token = getContract({
+  const token = isNative ? null : getContract({
     address: tokenIn,
     abi: ERC20_ABI,
     client: { public: publicClient, wallet: walletClient },
@@ -75,18 +130,17 @@ async function main() {
     client: { public: publicClient },
   });
 
-  const [tokenSymbol, tokenDecimals, usdcSymbol, usdcDecimals] = await Promise.all([
-    token.read.symbol(),
-    token.read.decimals(),
+  const tokenDecimals = isNative ? 18 : await token!.read.decimals();
+  const [usdcSymbol, usdcDecimals] = await Promise.all([
     usdcContract.read.symbol(),
     usdcContract.read.decimals(),
   ]);
 
   console.log('╔════════════════════════════════════════╗');
-  console.log('║       DEX Adapter Test                 ║');
+  console.log(`║       DEX Adapter ${isQuoteMode ? 'Quote' : 'Swap'} Test           ║`);
   console.log('╚════════════════════════════════════════╝');
-  console.log(`Network:        ${target.toUpperCase()}`);
-  console.log(`Mode:           ${quoteOnly ? 'QUOTE (simulation)' : 'SWAP (real)'}`);
+  console.log(`Mode:           ${isQuoteMode ? 'QUOTE (simulation)' : 'SWAP (execution)'}`);
+  console.log(`Network:        ${network.toUpperCase()}`);
   console.log(`Account:        ${account.address}`);
   console.log(`Adapter:        ${adapterAddress}`);
   console.log(`Token In:       ${tokenIn} (${tokenSymbol})`);
@@ -98,83 +152,94 @@ async function main() {
   }
   console.log('─────────────────────────────────────────');
 
-  if (quoteOnly) {
-    console.log('\n📊 Getting quote via eth_call simulation...\n');
+  console.log(`\n🔄 ${isQuoteMode ? 'Getting quote' : 'Executing swap'}...\n`);
 
-    try {
-      const quote = (await publicClient.readContract({
-        address: adapterAddress,
-        abi: ADAPTER_ABI,
-        functionName: 'swap',
-        args: [tokenIn, amountIn, 0n, swapPath],
-      })) as bigint;
+  const balance = isNative
+    ? await publicClient.getBalance({ address: account.address })
+    : await token!.read.balanceOf([account.address]);
 
-      const rate = Number(quote) / Number(amountIn);
-
-      console.log('╔════════════════════════════════════════╗');
-      console.log('║            Quote Results               ║');
-      console.log('╚════════════════════════════════════════╝');
-      console.log(`Estimated USDC: ${quote} (${formatAmount(quote, usdcDecimals)} ${usdcSymbol})`);
-      console.log(`Exchange Rate:  ${rate.toFixed(6)} ${usdcSymbol}/${tokenSymbol}`);
-      console.log('\n✅ Quote successful!');
-    } catch (error: any) {
-      console.error('\n❌ Quote failed:', error.message);
-      if (error.cause) {
-        console.error('Cause:', error.cause);
-      }
-      throw error;
-    }
-
-    return;
-  }
-
-  console.log('\n🔄 Executing real swap...\n');
-
-  const balance = await token.read.balanceOf([account.address]);
-  console.log(`1. Checking balance...`);
+  console.log(`1. Checking balances...`);
   console.log(`   Your ${tokenSymbol} balance: ${formatAmount(balance, tokenDecimals)}`);
-
-  if (balance < amountIn) {
-    throw new Error(`Insufficient balance. Have: ${balance}, Need: ${amountIn}`);
-  }
 
   const usdcBefore = await usdcContract.read.balanceOf([account.address]);
   console.log(`   Your ${usdcSymbol} balance: ${formatAmount(usdcBefore, usdcDecimals)}\n`);
 
-  console.log('2. Approving adapter...');
-  const approveTx = await token.write.approve([adapterAddress, amountIn]);
-  console.log(`   Tx: ${approveTx}`);
-  await publicClient.waitForTransactionReceipt({ hash: approveTx });
-  console.log('   ✅ Approved\n');
+  if (balance < amountIn) {
+    throw new Error(`Insufficient balance. Have: ${formatAmount(balance, tokenDecimals)} ${tokenSymbol}, Need: ${formatAmount(amountIn, tokenDecimals)} ${tokenSymbol}`);
+  }
 
-  console.log('3. Transferring tokens to adapter...');
-  const transferTx = await token.write.transfer([adapterAddress, amountIn]);
-  console.log(`   Tx: ${transferTx}`);
-  await publicClient.waitForTransactionReceipt({ hash: transferTx });
-  console.log('   ✅ Transferred\n');
+  if (isNative) {
+    console.log(`2. Skipping approval (native token)...\n`);
+  } else {
+    console.log(`2. Approving adapter to spend ${formatAmount(amountIn, tokenDecimals)} ${tokenSymbol}...`);
+    const allowance = await token!.read.allowance([account.address, adapterAddress]);
+    if (allowance < amountIn) {
+      const approveTx = await token!.write.approve([adapterAddress, amountIn]);
+      console.log(`   Tx: ${approveTx}`);
+      await publicClient.waitForTransactionReceipt({ hash: approveTx });
+      console.log('   ✅ Approved\n');
+    } else {
+      console.log('   ✅ Already approved\n');
+    }
+  }
 
-  console.log('4. Executing swap...');
-  const swapTx = await adapter.write.swap([tokenIn, amountIn, minUsdcOut, swapPath]);
-  console.log(`   Tx: ${swapTx}`);
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: swapTx });
-  console.log('   ✅ Swap completed\n');
+  let usdcReceived: bigint;
+  let gasUsed: bigint | undefined;
 
-  const usdcAfter = await usdcContract.read.balanceOf([account.address]);
-  const usdcReceived = usdcAfter - usdcBefore;
+  if (isQuoteMode) {
+    console.log('3. Simulating swap to get quote...');
+
+    const { data } = await publicClient.call({
+      account: account.address,
+      to: adapterAddress,
+      value: isNative ? amountIn : undefined,
+      data: encodeFunctionData({
+        abi: ADAPTER_ABI,
+        functionName: 'swap',
+        args: [tokenIn, amountIn, minUsdcOut, swapPath],
+      }),
+    });
+
+    if (!data) {
+      throw new Error('Quote simulation failed - no data returned');
+    }
+
+    usdcReceived = BigInt(data);
+    console.log('   ✅ Quote received\n');
+  } else {
+    console.log('3. Executing swap...');
+    const swapTx = await adapter.write.swap(
+      [tokenIn, amountIn, minUsdcOut, swapPath],
+      isNative ? { value: amountIn } : undefined
+    );
+    console.log(`   Tx: ${swapTx}`);
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: swapTx });
+    console.log('   ✅ Swap completed\n');
+
+    const usdcAfter = await usdcContract.read.balanceOf([account.address]);
+    usdcReceived = usdcAfter - usdcBefore;
+    gasUsed = receipt.gasUsed;
+  }
+
   const rate = Number(usdcReceived) / Number(amountIn);
 
   console.log('╔════════════════════════════════════════╗');
-  console.log('║            Swap Results                ║');
+  console.log(`║            ${isQuoteMode ? 'Quote' : 'Swap'} Results               ║`);
   console.log('╚════════════════════════════════════════╝');
-  console.log(`Gas Used:       ${receipt.gasUsed}`);
-  console.log(`USDC Received:  ${usdcReceived} (${formatAmount(usdcReceived, usdcDecimals)} ${usdcSymbol})`);
+  if (gasUsed !== undefined) {
+    console.log(`Gas Used:       ${gasUsed}`);
+  }
+  console.log(`${isQuoteMode ? 'Expected USDC:' : 'USDC Received:'} ${usdcReceived} (${formatAmount(usdcReceived, usdcDecimals)} ${usdcSymbol})`);
   console.log(`Exchange Rate:  ${rate.toFixed(6)} ${usdcSymbol}/${tokenSymbol}`);
-  console.log(`New Balance:    ${formatAmount(usdcAfter, usdcDecimals)} ${usdcSymbol}`);
+  if (!isQuoteMode) {
+    const usdcAfter = await usdcContract.read.balanceOf([account.address]);
+    console.log(`New Balance:    ${formatAmount(usdcAfter, usdcDecimals)} ${usdcSymbol}`);
+  }
 
   if (minUsdcOut > 0n && usdcReceived < minUsdcOut) {
-    console.log('\n⚠️  WARNING: Received less than minimum!');
+    console.log(`\n⚠️  WARNING: ${isQuoteMode ? 'Quote is' : 'Received'} less than minimum!`);
   } else {
-    console.log('\n✅ Swap successful!');
+    console.log(`\n✅ ${isQuoteMode ? 'Quote retrieved successfully!' : 'Swap successful!'}`);
   }
 }
 

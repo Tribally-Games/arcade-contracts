@@ -9,7 +9,13 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 
 ## On-chain addresses
 
-* Base: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
+* Base:
+  * Aracde: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
+  * Dex adapter: 
+
+* Ronin:
+  * Arcade: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
+  * DEX adapter: [0xeca69B3523fBAdDc16adf80A88b4c7b52F788AcB](https://app.roninchain.com/address/0xeca69b3523fbaddc16adf80a88b4c7b52f788acb)
 
 ## Usage guide
 
@@ -104,6 +110,10 @@ $ bun run release        # patch version
 $ bun run release:minor  # minor version
 $ bun run release:major  # major version
 ```
+
+## Documentation
+
+For further docs on dev guides see [./docs](./docs) folder.
 
 
 ## License

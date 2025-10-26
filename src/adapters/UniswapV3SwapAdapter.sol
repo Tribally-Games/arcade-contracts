@@ -40,7 +40,7 @@ contract UniswapV3SwapAdapter is IDexSwapAdapter {
         uint256 amountIn,
         uint256 amountOutMinimum,
         bytes calldata path
-    ) external override returns (uint256 amountOut) {
+    ) external payable override returns (uint256 amountOut) {
         IERC20(tokenIn).safeApprove(swapRouter, amountIn);
 
         IV3SwapRouter.ExactInputParams memory params = IV3SwapRouter.ExactInputParams({

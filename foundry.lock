@@ -1,4 +1,7 @@
 {
+  "lib/diamond-2-hardhat": {
+    "rev": "bf67b736ad5fa3366551f599e204784856fb3069"
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.11.0",

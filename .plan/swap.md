@@ -38,10 +38,51 @@ Shared utilities for TypeScript scripts:
 - `ronin` - Ronin chain
 - `baseFork` - Base fork
 
-#### 2. scripts/predeploy.ts (Refactored)
-Updated to use shared utilities from `utils.ts`.
+#### 2. scripts/create3.ts ✅ NEW
+CREATE3 factory constants for deterministic deployment:
+- `FACTORY_DEPLOYED_ADDRESS`: `0x24fCFA23F3b22c15070480766E3fE2fad3E813EA`
+- `FACTORY_ABI`: Contract interface for deploy() and getDeployed()
+- Copied from tribal-token repo for consistency
 
-#### 3. src/interfaces/IDexSwapAdapter.sol
+#### 3. scripts/create3-deploy.ts ✅ NEW
+Reusable CREATE3 deployment utilities:
+- `checkCreate3Factory()` - Verify factory exists
+- `getPredictedAddress()` - Get deterministic address from salt
+- `isContractDeployed()` - Check if contract already deployed
+- `deployWithCreate3()` - Deploy contract via CREATE3
+- `deployWithCreate3AndLog()` - Deploy with formatted logging
+
+**Benefits:**
+- Deterministic addresses across networks
+- Idempotent deployments (safe to run multiple times)
+- Reusable for other deployment scripts
+
+#### 4. scripts/predeploy.ts (Updated) ✅
+Now handles both test token deployment (local) and DEX adapter deployment (ronin/base):
+
+**Network Configurations:**
+```typescript
+const ADAPTER_CONFIGS = {
+  ronin: {
+    routerAddress: '0x5f0acdd3ec767514ff1bf7e79949640bf94576bd',
+    usdcAddress: '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc',
+    salt: '0x4b4154414e415f41444150544552...beef',
+  },
+  base: {
+    routerAddress: '0x2626664c2603336E57B271c5C0b26F421741e481',
+    usdcAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    salt: '0x554e49535741505f41444150544552...ef',
+  }
+}
+```
+
+**Execution Flow:**
+- Local: Deploy test tokens (existing behavior)
+- Ronin: Deploy KatanaSwapAdapter via CREATE3
+- Base: Deploy UniswapV3SwapAdapter via CREATE3
+- Other: Skip predeploy
+
+#### 5. src/interfaces/IDexSwapAdapter.sol
 Common interface for all DEX adapters:
 ```solidity
 interface IDexSwapAdapter {
@@ -56,7 +97,7 @@ interface IDexSwapAdapter {
 }
 ```
 
-#### 4. src/interfaces/IKatanaRouter.sol
+#### 6. src/interfaces/IKatanaRouter.sol
 Katana AggregateRouter interface:
 ```solidity
 interface IKatanaRouter {
@@ -68,7 +109,7 @@ interface IKatanaRouter {
 }
 ```
 
-#### 5. src/interfaces/IV3SwapRouter.sol
+#### 7. src/interfaces/IV3SwapRouter.sol
 Uniswap V3 SwapRouter interface:
 ```solidity
 interface IV3SwapRouter {
@@ -86,7 +127,7 @@ interface IV3SwapRouter {
 }
 ```
 
-#### 6. src/adapters/KatanaSwapAdapter.sol
+#### 8. src/adapters/KatanaSwapAdapter.sol
 DEX adapter for Ronin/Katana:
 - Uses V3_SWAP_EXACT_IN command (0x00)
 - Encodes inputs with recipient, amount, slippage protection
@@ -106,7 +147,7 @@ constructor(address _katanaRouter, address _usdcToken, address _owner)
 5. Calculate USDC received
 6. Transfer USDC to caller
 
-#### 7. src/adapters/UniswapV3SwapAdapter.sol
+#### 9. src/adapters/UniswapV3SwapAdapter.sol
 DEX adapter for Base/Uniswap V3:
 - Uses `exactInput()` for swaps
 - Transfers USDC back to caller after swap
@@ -123,7 +164,7 @@ constructor(address _swapRouter, address _usdcToken, address _owner)
 3. Execute via `swapRouter.exactInput()`
 4. Transfer USDC to caller
 
-#### 8. scripts/test-dex-adapter.ts
+#### 10. scripts/test-dex-adapter.ts
 Comprehensive test script for DEX adapters:
 - Quote mode: Simulate swap via eth_call (no transaction)
 - Swap mode: Execute real swap on network
@@ -196,24 +237,22 @@ error SwapFailed();
 ### Initialization Updates
 
 #### InitDiamond.sol
-Update to use InitParams struct:
+Update to accept swapAdapter parameter:
 ```solidity
-struct InitParams {
-    address govToken;
-    address usdcToken;
-    address signer;
-    address swapAdapter;
-}
-
-function init(InitParams calldata params) external {
+function init(
+    address _govToken,
+    address _usdcToken,
+    address _signer,
+    address _swapAdapter
+) external {
     AppStorage storage s = LibAppStorage.diamondStorage();
     if (s.diamondInitialized) revert DiamondAlreadyInitialized();
 
     s.diamondInitialized = true;
-    s.govToken = params.govToken;
-    s.usdcToken = params.usdcToken;
-    s.signer = params.signer;
-    s.swapAdapter = params.swapAdapter;
+    s.govToken = _govToken;
+    s.usdcToken = _usdcToken;
+    s.signer = _signer;
+    s.swapAdapter = _swapAdapter;
 
     emit InitializeDiamond(msg.sender);
 }

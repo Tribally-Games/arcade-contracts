@@ -89,6 +89,16 @@ module.exports = {
     },
     baseFork: {
       rpcUrl: 'http://localhost:8545/',
+    },
+    ronin: {
+      rpcUrl: "https://api.roninchain.com/rpc",
+      contractVerification: {
+        foundry: {
+          apiUrl: "https://sourcify.roninchain.com/server/",
+          apiKey: process.env.ETHERSCAN_API_KEY || '',
+          chainId: 2020,
+        },
+      },
     }
   },
   targets: {
@@ -122,6 +132,19 @@ module.exports = {
       upgrades: {
         manualCut: true
       }
-    }
+    },
+    ronin: {
+      network: "ronin",
+      wallet: "deployer_wallet",
+      initArgs: [
+        "0x5f0acdd3ec767514ff1bf7e79949640bf94576bd",
+        "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
+        "0x000000000000000000000000000000000000dead"
+      ],
+      create3Salt: SALT,
+      upgrades: {
+        manualCut: true
+      }
+    },
   },
 };
