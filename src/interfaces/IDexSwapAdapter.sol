@@ -2,13 +2,24 @@
 pragma solidity ^0.8.24;
 
 interface IDexSwapAdapter {
-    /// @notice Swap tokens to USDC
-    /// @dev Frontend can call via eth_call for quotes without execution
-    /// @param tokenIn Input token address (address(0) for native token)
+    /// @notice Get quote for swapping tokens
+    /// @dev Returns expected output amount. May execute swap for adapters without quote mechanism.
+    /// @param tokenIn Input token address (ERC20 tokens only, address(0) for native token)
     /// @param amountIn Exact input amount
-    /// @param amountOutMinimum Minimum USDC to receive (slippage protection)
-    /// @param path Encoded swap path
-    /// @return amountOut Actual USDC received (or simulated if called via eth_call)
+    /// @param path Encoded swap path (format depends on DEX implementation)
+    /// @return amountOut Expected output amount
+    function getQuote(
+        address tokenIn,
+        uint256 amountIn,
+        bytes calldata path
+    ) external payable returns (uint256 amountOut);
+
+    /// @notice Swap tokens using DEX-specific routing
+    /// @param tokenIn Input token address (ERC20 tokens only, address(0) for native token)
+    /// @param amountIn Exact input amount
+    /// @param amountOutMinimum Minimum output amount to receive (slippage protection)
+    /// @param path Encoded swap path (format depends on DEX implementation)
+    /// @return amountOut Actual output amount received
     function swap(
         address tokenIn,
         uint256 amountIn,

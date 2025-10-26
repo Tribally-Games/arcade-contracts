@@ -4,12 +4,14 @@ pragma solidity 0.8.24;
 import "forge-std/Test.sol";
 import { UniswapV3SwapAdapter } from "src/adapters/UniswapV3SwapAdapter.sol";
 import { MockUniswapV3Router } from "./mocks/MockUniswapV3Router.sol";
+import { MockQuoterV2 } from "./mocks/MockQuoterV2.sol";
 import { TestERC20 } from "src/mocks/TestERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract UniswapV3SwapAdapterTest is Test {
     UniswapV3SwapAdapter public adapter;
     MockUniswapV3Router public router;
+    MockQuoterV2 public quoter;
     TestERC20 public weth;
     TestERC20 public usdc;
 
@@ -22,13 +24,16 @@ contract UniswapV3SwapAdapterTest is Test {
     event TokensRescued(address indexed token, address indexed to, uint256 amount);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    receive() external payable {}
+
     function setUp() public {
         weth = new TestERC20("Wrapped Ether", "WETH", 18);
         usdc = new TestERC20("USD Coin", "USDC", 6);
         router = new MockUniswapV3Router(address(usdc));
+        quoter = new MockQuoterV2();
 
         vm.prank(owner);
-        adapter = new UniswapV3SwapAdapter(address(router));
+        adapter = new UniswapV3SwapAdapter(address(router), address(quoter));
 
         usdc.mint(address(router), INITIAL_ROUTER_USDC);
 
@@ -41,18 +46,24 @@ contract UniswapV3SwapAdapterTest is Test {
 
     function test_Constructor_RevertsWhenRouterIsZeroAddress() public {
         vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
-        new UniswapV3SwapAdapter(address(0));
+        new UniswapV3SwapAdapter(address(0), address(quoter));
+    }
+
+    function test_Constructor_RevertsWhenQuoterIsZeroAddress() public {
+        vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
+        new UniswapV3SwapAdapter(address(router), address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
         assertEq(adapter.swapRouter(), address(router));
+        assertEq(adapter.quoterV2(), address(quoter));
         assertEq(adapter.owner(), owner);
     }
 
     function test_Constructor_SetsDeployerAsOwner() public {
         address deployer = address(0x1111);
         vm.prank(deployer);
-        UniswapV3SwapAdapter newAdapter = new UniswapV3SwapAdapter(address(router));
+        UniswapV3SwapAdapter newAdapter = new UniswapV3SwapAdapter(address(router), address(quoter));
         assertEq(newAdapter.owner(), deployer);
     }
 
@@ -166,9 +177,19 @@ contract UniswapV3SwapAdapterTest is Test {
         adapter.rescueTokens(address(usdc), 1000e6);
     }
 
-    function test_RescueTokens_RevertsWhenTokenIsZeroAddress() public {
-        vm.expectRevert(UniswapV3SwapAdapter.InvalidAddress.selector);
-        adapter.rescueTokens(address(0), 1000e6);
+    function test_RescueTokens_CanRescueEth() public {
+        uint256 rescueAmount = 1 ether;
+        vm.deal(address(adapter), rescueAmount);
+
+        uint256 ownerBalanceBefore = owner.balance;
+
+        vm.expectEmit(true, true, true, true);
+        emit TokensRescued(address(0), owner, rescueAmount);
+
+        adapter.rescueTokens(address(0), rescueAmount);
+
+        assertEq(owner.balance, ownerBalanceBefore + rescueAmount);
+        assertEq(address(adapter).balance, 0);
     }
 
     function test_RescueTokens_CanRescueWeth() public {

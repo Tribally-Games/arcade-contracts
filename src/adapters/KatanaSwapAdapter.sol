@@ -27,6 +27,14 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
         _transferOwnership(msg.sender);
     }
 
+    function getQuote(
+        address tokenIn,
+        uint256 amountIn,
+        bytes calldata path
+    ) external payable override returns (uint256 amountOut) {
+        return this.swap{ value: msg.value }(tokenIn, amountIn, 0, path);
+    }
+
     function swap(
         address tokenIn,
         uint256 amountIn,

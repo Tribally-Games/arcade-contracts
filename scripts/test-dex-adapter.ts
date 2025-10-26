@@ -178,7 +178,7 @@ async function main() {
   let gasUsed: bigint | undefined;
 
   if (isQuoteMode) {
-    console.log('3. Simulating swap to get quote...');
+    console.log('3. Getting quote...');
 
     const { data } = await publicClient.call({
       account: account.address,
@@ -186,13 +186,13 @@ async function main() {
       value: isNative ? amountIn : undefined,
       data: encodeFunctionData({
         abi: ADAPTER_ABI,
-        functionName: 'swap',
-        args: [tokenIn, amountIn, minUsdcOut, swapPath],
+        functionName: 'getQuote',
+        args: [tokenIn, amountIn, swapPath],
       }),
     });
 
     if (!data) {
-      throw new Error('Quote simulation failed - no data returned');
+      throw new Error('Quote failed - no data returned');
     }
 
     usdcReceived = BigInt(data);

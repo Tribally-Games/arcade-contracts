@@ -80,7 +80,7 @@ contract GatewayFacet is ReentrancyGuard {
       return _amount;
     }
 
-    return IDexSwapAdapter(s.swapAdapter).swap(_token, _amount, 0, _swapData);
+    return IDexSwapAdapter(s.swapAdapter).getQuote(_token, _amount, _swapData);
   }
 
   function withdraw(address _user, uint _amount,  AuthSignature calldata _sig) external nonReentrant {

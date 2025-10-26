@@ -346,4 +346,63 @@ contract DummyDexAdapterTest is Test {
         assertGt(adapter.reserveWETH(), 0);
         assertGt(adapter.reserveUSDC(), 0);
     }
+
+    function test_GetQuote_WethToUsdc_ReturnsCorrectAmount() public {
+        uint256 amountIn = 1 ether;
+        uint256 quoteAmount = adapter.getQuote(address(weth), amountIn, "");
+
+        uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_GetQuote_NativeToUsdc_ReturnsCorrectAmount() public {
+        uint256 amountIn = 1 ether;
+        uint256 quoteAmount = adapter.getQuote(address(0), amountIn, "");
+
+        uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_GetQuote_UsdcToWeth_ReturnsCorrectAmount() public {
+        uint256 amountIn = 1000e6;
+        uint256 quoteAmount = adapter.getQuote(address(usdc), amountIn, "");
+
+        uint256 expectedOut = (amountIn * INITIAL_WETH_LIQUIDITY) / (INITIAL_USDC_LIQUIDITY + amountIn);
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_GetQuote_DoesNotModifyState() public {
+        uint256 reserveWethBefore = adapter.reserveWETH();
+        uint256 reserveUsdcBefore = adapter.reserveUSDC();
+
+        adapter.getQuote(address(weth), 1 ether, "");
+
+        assertEq(adapter.reserveWETH(), reserveWethBefore);
+        assertEq(adapter.reserveUSDC(), reserveUsdcBefore);
+    }
+
+    function test_GetQuote_MultipleCallsConsistent() public {
+        uint256 amountIn = 1 ether;
+
+        uint256 quote1 = adapter.getQuote(address(weth), amountIn, "");
+        uint256 quote2 = adapter.getQuote(address(weth), amountIn, "");
+        uint256 quote3 = adapter.getQuote(address(weth), amountIn, "");
+
+        assertEq(quote1, quote2);
+        assertEq(quote2, quote3);
+    }
+
+    function test_GetQuote_RevertsWhenInvalidToken() public {
+        address invalidToken = address(0x9999);
+
+        vm.expectRevert(DummyDexAdapter.InvalidToken.selector);
+        adapter.getQuote(invalidToken, 1 ether, "");
+    }
+
+    function test_GetQuote_RevertsWhenNoLiquidity() public {
+        DummyDexAdapter emptyAdapter = new DummyDexAdapter(address(weth), address(usdc));
+
+        vm.expectRevert(DummyDexAdapter.InsufficientLiquidity.selector);
+        emptyAdapter.getQuote(address(weth), 1 ether, "");
+    }
 }

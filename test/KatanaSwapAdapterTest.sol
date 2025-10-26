@@ -154,7 +154,18 @@ contract KatanaSwapAdapterTest is Test {
         assertEq(usdc.balanceOf(user), ((1 ether + 2 ether + 0.5 ether) * 2000) / 1e12);
     }
 
-    function test_RescueTokens_Success() public {
+    function test_GetQuote_NativeToken_ExecutesSwap() public {
+        uint256 amountIn = 1 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.prank(user);
+        uint256 quoteAmount = adapter.getQuote{ value: amountIn }(address(0), amountIn, path);
+
+        uint256 expectedOut = (amountIn * 2000) / 1e12;
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_RescueTokens_Success() public{
         uint256 rescueAmount = 1000e6;
         usdc.mint(address(adapter), rescueAmount);
 

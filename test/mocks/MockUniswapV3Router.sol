@@ -18,6 +18,8 @@ contract MockUniswapV3Router is IV3SwapRouter {
         override
         returns (uint256 amountOut)
     {
+        require(params.deadline >= block.timestamp, "Transaction too old");
+
         amountOut = (params.amountIn * EXCHANGE_RATE) / 1e12;
 
         require(amountOut >= params.amountOutMinimum, "Insufficient output amount");

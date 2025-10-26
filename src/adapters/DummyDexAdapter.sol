@@ -42,6 +42,35 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
         _transferOwnership(msg.sender);
     }
 
+    function getQuote(
+        address tokenIn,
+        uint256 amountIn,
+        bytes calldata
+    ) external payable override returns (uint256 amountOut) {
+        bool isNative = tokenIn == address(0);
+        bool isWethToUsdc;
+
+        if (isNative || tokenIn == wrappedNativeToken) {
+            isWethToUsdc = true;
+        } else if (tokenIn == usdcToken) {
+            isWethToUsdc = false;
+        } else {
+            revert InvalidToken();
+        }
+
+        if (isWethToUsdc) {
+            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
+            amountOut = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
+            if (amountOut > reserveUSDC) revert InsufficientLiquidity();
+        } else {
+            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
+            amountOut = (amountIn * reserveWETH) / (reserveUSDC + amountIn);
+            if (amountOut > reserveWETH) revert InsufficientLiquidity();
+        }
+
+        return amountOut;
+    }
+
     function swap(
         address tokenIn,
         uint256 amountIn,
