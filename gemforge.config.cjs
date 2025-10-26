@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const SALT = "0xf93ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1939"
+const SALT = "0xf93ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1937"
 
 module.exports = {
   version: 2,
@@ -75,8 +75,11 @@ module.exports = {
     },
   },
   networks: {
-    local: {
+    local1: {
       rpcUrl: "http://localhost:8545",
+    },
+    local2: {
+      rpcUrl: "http://localhost:8546",
     },
     base: {
       rpcUrl: "https://base.lava.build",
@@ -102,8 +105,18 @@ module.exports = {
     }
   },
   targets: {
-    local: {
-      network: "local",
+    local1: {
+      network: "local1",
+      wallet: "local_wallet",
+      initArgs: [
+        "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+        "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+      ],
+      create3Salt: SALT,
+    },
+    local2: {
+      network: "local2",
       wallet: "local_wallet",
       initArgs: [
         "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",

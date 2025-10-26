@@ -10,6 +10,8 @@ contract ConfigFacet is AccessControl {
 
   event SignerChanged(address newSigner);
 
+  event SwapAdapterUpdated(address indexed oldAdapter, address indexed newAdapter);
+
   function signer() external view returns (address) {
     return LibAppStorage.diamondStorage().signer;
   }
@@ -40,5 +42,22 @@ contract ConfigFacet is AccessControl {
 
   function usdcToken() external view returns (address) {
     return LibAppStorage.diamondStorage().usdcToken;
+  }
+
+  function swapAdapter() external view returns (address) {
+    return LibAppStorage.diamondStorage().swapAdapter;
+  }
+
+  function updateSwapAdapter(address _newAdapter) external isAdmin {
+    AppStorage storage s = LibAppStorage.diamondStorage();
+
+    if (_newAdapter == address(0)) {
+      revert LibErrors.InvalidSwapAdapter();
+    }
+
+    address oldAdapter = s.swapAdapter;
+    s.swapAdapter = _newAdapter;
+
+    emit SwapAdapterUpdated(oldAdapter, _newAdapter);
   }
 }

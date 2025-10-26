@@ -12,7 +12,7 @@ contract KatanaSwapAdapter is IDexSwapAdapter, Ownable {
     using SafeERC20 for IERC20;
 
     address public immutable katanaRouter;
-    address public immutable override usdcToken;
+    address private immutable usdcToken;
 
     address private constant ADDRESS_THIS = address(2);
 

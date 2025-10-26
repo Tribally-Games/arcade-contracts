@@ -10,7 +10,7 @@ contract UniswapV3SwapAdapter is IDexSwapAdapter {
     using SafeERC20 for IERC20;
 
     address public immutable swapRouter;
-    address public immutable override usdcToken;
+    address private immutable usdcToken;
     address public owner;
 
     event RouterUpdated(address indexed oldRouter, address indexed newRouter);

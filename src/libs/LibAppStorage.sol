@@ -18,6 +18,8 @@ struct AppStorage {
     uint gatewayPoolBalance;
 
     address usdcToken;
+
+    address swapAdapter;
 }
 
 

@@ -4,74 +4,19 @@ import { type Hex } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClients } from './utils';
-import { deployWithCreate3AndLog } from './create3-deploy';
+import { deployAdapter } from './deploy-adapter';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
-const ADAPTER_CONFIGS = {
-  ronin: {
-    name: 'Ronin',
-    adapterName: 'KatanaSwapAdapter',
-    adapterPath: 'KatanaSwapAdapter.sol',
-    routerAddress: '0x5f0acdd3ec767514ff1bf7e79949640bf94576bd' as Hex,
-    usdcAddress: '0x0b7007c13325c48911f73a2dad5fa5dcbf808adc' as Hex,
-    salt: '0x4b4154414e415f4144415054455200000000000000000000000000000000beee' as Hex,
-  },
-  base: {
-    name: 'Base',
-    adapterName: 'UniswapV3SwapAdapter',
-    adapterPath: 'UniswapV3SwapAdapter.sol',
-    routerAddress: '0x2626664c2603336E57B271c5C0b26F421741e481' as Hex,
-    usdcAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' as Hex,
-    salt: '0x554e49535741505f4144415054455200000000000000000000000000000000ef' as Hex,
-  },
-} as const;
-
+const KNOWN_WETH_ADDRESS = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9' as Hex;
 const KNOWN_USDC_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as Hex;
 const KNOWN_TRIBAL_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512' as Hex;
+const KNOWN_ADAPTER_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9' as Hex;
 
-async function deployDexAdapter(target: string) {
-  const config = ADAPTER_CONFIGS[target as keyof typeof ADAPTER_CONFIGS];
+async function deployLocalDevnetContracts() {
+  console.log('Running predeploy script for local devnet target...');
 
-  if (!config) {
-    console.log(`No DEX adapter configured for target: ${target}`);
-    return;
-  }
-
-  console.log('\n╔════════════════════════════════════════╗');
-  console.log('║     DEX Adapter Deployment             ║');
-  console.log('╚════════════════════════════════════════╝');
-  console.log(`Network:        ${config.name}`);
-  console.log(`Adapter:        ${config.adapterName}`);
-
-  const clients = createClients(target);
-
-  const result = await deployWithCreate3AndLog(
-    clients,
-    {
-      contractName: config.adapterName,
-      contractPath: config.adapterPath,
-      constructorArgs: [config.routerAddress, config.usdcAddress, clients.account.address],
-      constructorTypes: ['address', 'address', 'address'],
-      salt: config.salt,
-    },
-    `${config.name} DEX Adapter`
-  );
-
-  console.log('\n📋 Deployment Summary:');
-  console.log(`  Address:        ${result.address}`);
-  console.log(`  Router:         ${config.routerAddress}`);
-  console.log(`  USDC:           ${config.usdcAddress}`);
-  console.log(`  Owner:          ${clients.account.address}`);
-  console.log('─────────────────────────────────────────\n');
-
-  return result.address;
-}
-
-async function deployTestTokens() {
-  console.log('Running predeploy script for local target...');
-
-  const clients = createClients('local');
+  const clients = createClients(TARGET!);
 
   console.log(`Using deployer address: ${clients.account.address}`);
 
@@ -131,6 +76,105 @@ async function deployTestTokens() {
 
   await deployToken('TestUSDC', 'tUSDC', 6, KNOWN_USDC_ADDRESS, 1000000000n);
   await deployToken('TestTRIBAL', 'tTRIBAL', 18, KNOWN_TRIBAL_ADDRESS, 1000000000000000000000n);
+
+  const wethArtifactPath = join(process.cwd(), 'out/MockWETH.sol/MockWETH.json');
+  const wethArtifact = JSON.parse(readFileSync(wethArtifactPath, 'utf-8'));
+
+  const wethCode = await clients.publicClient.getCode({ address: KNOWN_WETH_ADDRESS });
+  let wethAddress: Hex;
+
+  if (wethCode && wethCode !== '0x') {
+    console.log(`✓ MockWETH already deployed at ${KNOWN_WETH_ADDRESS}`);
+    wethAddress = KNOWN_WETH_ADDRESS;
+  } else {
+    console.log('Deploying MockWETH...');
+    const wethHash = await clients.walletClient.deployContract({
+      abi: wethArtifact.abi,
+      bytecode: wethArtifact.bytecode.object as Hex,
+      args: [],
+      account: clients.account,
+    });
+
+    console.log(`Deploy transaction: ${wethHash}`);
+    const wethReceipt = await clients.publicClient.waitForTransactionReceipt({ hash: wethHash });
+
+    if (!wethReceipt.contractAddress) {
+      throw new Error('Failed to deploy MockWETH - no address in receipt');
+    }
+
+    wethAddress = wethReceipt.contractAddress;
+    console.log(`✓ MockWETH deployed successfully at ${wethAddress}`);
+
+    console.log('Wrapping 1000 ETH to WETH...');
+    const depositHash = await clients.walletClient.sendTransaction({
+      to: wethAddress,
+      value: 1000n * 10n ** 18n,
+      account: clients.account,
+    });
+    await clients.publicClient.waitForTransactionReceipt({ hash: depositHash });
+    console.log('✓ Wrapped 1000 ETH to WETH');
+  }
+
+  const adapterArtifactPath = join(process.cwd(), 'out/DummyDexAdapter.sol/DummyDexAdapter.json');
+  const adapterArtifact = JSON.parse(readFileSync(adapterArtifactPath, 'utf-8'));
+
+  const adapterCode = await clients.publicClient.getCode({ address: KNOWN_ADAPTER_ADDRESS });
+
+  if (adapterCode && adapterCode !== '0x') {
+    console.log(`✓ DummyDexAdapter already deployed at ${KNOWN_ADAPTER_ADDRESS}`);
+  } else {
+    console.log('Deploying DummyDexAdapter...');
+    const adapterHash = await clients.walletClient.deployContract({
+      abi: adapterArtifact.abi,
+      bytecode: adapterArtifact.bytecode.object as Hex,
+      args: [wethAddress, KNOWN_USDC_ADDRESS, clients.account.address],
+      account: clients.account,
+    });
+
+    console.log(`Deploy transaction: ${adapterHash}`);
+    const adapterReceipt = await clients.publicClient.waitForTransactionReceipt({ hash: adapterHash });
+
+    if (!adapterReceipt.contractAddress) {
+      throw new Error('Failed to deploy DummyDexAdapter - no address in receipt');
+    }
+
+    console.log(`✓ DummyDexAdapter deployed successfully at ${adapterReceipt.contractAddress}`);
+
+    console.log('Adding initial liquidity (100 WETH + 200,000 USDC)...');
+
+    const wethAmount = 100n * 10n ** 18n;
+    const usdcAmount = 200000n * 10n ** 6n;
+
+    const approveWethHash = await clients.walletClient.writeContract({
+      address: wethAddress,
+      abi: wethArtifact.abi,
+      functionName: 'approve',
+      args: [adapterReceipt.contractAddress, wethAmount],
+      account: clients.account,
+    });
+    await clients.publicClient.waitForTransactionReceipt({ hash: approveWethHash });
+
+    const approveUsdcHash = await clients.walletClient.writeContract({
+      address: KNOWN_USDC_ADDRESS,
+      abi: artifact.abi,
+      functionName: 'approve',
+      args: [adapterReceipt.contractAddress, usdcAmount],
+      account: clients.account,
+    });
+    await clients.publicClient.waitForTransactionReceipt({ hash: approveUsdcHash });
+
+    const addLiquidityHash = await clients.walletClient.writeContract({
+      address: adapterReceipt.contractAddress,
+      abi: adapterArtifact.abi,
+      functionName: 'addLiquidity',
+      args: [wethAmount, usdcAmount],
+      account: clients.account,
+    });
+    await clients.publicClient.waitForTransactionReceipt({ hash: addLiquidityHash });
+
+    console.log('✓ Initial liquidity added (100 WETH + 200,000 USDC)');
+    console.log(`  Initial price: 1 WETH = 2,000 USDC`);
+  }
 }
 
 async function main() {
@@ -138,11 +182,22 @@ async function main() {
     throw new Error('GEMFORGE_DEPLOY_TARGET not set');
   }
 
-  if (TARGET === 'local') {
-    await deployTestTokens();
+  if (TARGET === 'local1' || TARGET === 'local2') {
+    await deployLocalDevnetContracts();
   } else if (TARGET === 'ronin' || TARGET === 'base') {
     console.log(`Running predeploy script for ${TARGET} target...`);
-    await deployDexAdapter(TARGET);
+    console.log('\n╔════════════════════════════════════════╗');
+    console.log('║     DEX Adapter Deployment             ║');
+    console.log('╚════════════════════════════════════════╝\n');
+
+    const result = await deployAdapter(TARGET);
+
+    if (result.alreadyDeployed) {
+      console.log('\n✅ DEX Adapter already deployed');
+    } else {
+      console.log('\n✅ DEX Adapter deployed successfully');
+    }
+    console.log(`📍 Adapter Address: ${result.address}\n`);
   } else {
     console.log(`Skipping predeploy - target is ${TARGET}`);
   }

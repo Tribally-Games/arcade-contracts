@@ -22,6 +22,20 @@ const ronin: Chain = {
   },
 };
 
+const local2: Chain = {
+  id: 31338,
+  name: 'Local Devnet 2',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ether',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: { http: ['http://localhost:8546'] },
+    public: { http: ['http://localhost:8546'] },
+  },
+};
+
 export interface ClientSetup {
   publicClient: ReturnType<typeof createPublicClient>;
   walletClient: ReturnType<typeof createWalletClient>;
@@ -55,9 +69,11 @@ export function loadGemforgeConfig(): GemforgeConfig {
 
 export function getChainConfig(target: string): Chain {
   switch (target) {
-    case 'local':
+    case 'local1':
     case 'baseFork':
       return foundry;
+    case 'local2':
+      return local2;
     case 'base':
       return base;
     case 'ronin':

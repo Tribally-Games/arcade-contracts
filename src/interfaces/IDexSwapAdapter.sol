@@ -15,8 +15,4 @@ interface IDexSwapAdapter {
         uint256 amountOutMinimum,
         bytes calldata path
     ) external payable returns (uint256 amountOut);
-
-    /// @notice USDC token address
-    /// @return USDC token address
-    function usdcToken() external view returns (address);
 }
