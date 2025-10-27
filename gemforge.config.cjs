@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const SALT = "0xf93ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1939"
+const SALT = "0xf02ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1948"
 
 module.exports = {
   version: 2,
@@ -75,8 +75,11 @@ module.exports = {
     },
   },
   networks: {
-    local: {
+    devnet1: {
       rpcUrl: "http://localhost:8545",
+    },
+    devnet2: {
+      rpcUrl: "http://localhost:8546",
     },
     base: {
       rpcUrl: "https://base.lava.build",
@@ -89,16 +92,39 @@ module.exports = {
     },
     baseFork: {
       rpcUrl: 'http://localhost:8545/',
+    },
+    ronin: {
+      rpcUrl: "https://api.roninchain.com/rpc",
+      contractVerification: {
+        foundry: {
+          apiUrl: "https://sourcify.roninchain.com/server/",
+          apiKey: process.env.ETHERSCAN_API_KEY || '',
+          chainId: 2020,
+          verifier: 'sourcify',
+        },
+      },
     }
   },
   targets: {
-    local: {
-      network: "local",
+    devnet1: {
+      network: "devnet1",
       wallet: "local_wallet",
       initArgs: [
         "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
         "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xc9CE9165a907059AE8BC2E3e86dE682Ae9AB30E4"
+      ],
+      create3Salt: SALT,
+    },
+    devnet2: {
+      network: "devnet2",
+      wallet: "local_wallet",
+      initArgs: [
+        "0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0",
+        "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+        "0xc9CE9165a907059AE8BC2E3e86dE682Ae9AB30E4"
       ],
       create3Salt: SALT,
     },
@@ -108,7 +134,22 @@ module.exports = {
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-        "0x000000000000000000000000000000000000dead"
+        "0x000000000000000000000000000000000000dead",
+        "0x630E7e9170fc4d7413801b752fc307eA97f8906F"
+      ],
+      create3Salt: SALT,
+      upgrades: {
+        manualCut: true
+      }
+    },
+    ronin: {
+      network: "ronin",
+      wallet: "deployer_wallet",
+      initArgs: [
+        "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
+        "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
+        "0x000000000000000000000000000000000000dead",
+        "0x630E7e9170fc4d7413801b752fc307eA97f8906F"
       ],
       create3Salt: SALT,
       upgrades: {
@@ -122,6 +163,6 @@ module.exports = {
       upgrades: {
         manualCut: true
       }
-    }
+    },
   },
 };

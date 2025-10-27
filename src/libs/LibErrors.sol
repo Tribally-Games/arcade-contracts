@@ -21,4 +21,12 @@ library LibErrors {
   error AmountMustBeGreaterThanZero();
 
   error TransferFailed();
+
+  error InsufficientUsdcReceived(uint256 received, uint256 minimum);
+
+  error InvalidSwapAdapter();
+
+  error SwapFailed();
+
+  error InvalidSwapOutput();
 }

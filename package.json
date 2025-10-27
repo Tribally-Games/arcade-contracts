@@ -17,7 +17,8 @@
   "scripts": {
     "bootstrap": "forge install && git submodule update --init --recursive && npx husky install && npx husky add .husky/commit-msg 'npx commitlint --edit $1'",
     "prettify": "prettier --write .",
-    "devnet": "anvil",
+    "devnet1": "anvil --port 8545 --chain-id 31337 --block-time 1",
+    "devnet2": "anvil --port 8546 --chain-id 31338 --block-time 1",
     "devnet-baseFork": "anvil --fork-url https://mainnet.base.org",
     "clean": "forge clean",
     "test": "forge test -vv",
@@ -62,5 +63,8 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "commander": "^14.0.2"
   }
 }
