@@ -6,7 +6,7 @@ import { DEX_ROUTERS, TOKEN_CONFIGS } from './gateway-utils';
 import { type Hex } from 'viem';
 import { deployWithCreate3, type DeployResult } from './create3-deploy';
 
-const CREATE3_SALT = '0x4445585f41444150544552000000000000000000000000000000000000013aff' as Hex;
+const CREATE3_SALT = '0x4445585a41444150544552000000000000000000000000000000000000013aff' as Hex;
 
 export async function deployAdapter(
   network: string,
@@ -36,6 +36,7 @@ export async function deployAdapter(
   if (adapterType === 'dummy') {
     const wethAddress = options.weth || TOKEN_CONFIGS[network]?.weth?.address;
     const usdcAddress = options.usdc || TOKEN_CONFIGS[network]?.usdc?.address;
+    const ownerAddress = options.owner || clients.account.address;
 
     if (!wethAddress) {
       throw new Error(`No default WETH address for ${network}`);
@@ -46,12 +47,13 @@ export async function deployAdapter(
 
     contractName = 'DummyDexAdapter';
     contractPath = 'DummyDexAdapter.sol';
-    constructorArgs = [wethAddress, usdcAddress];
-    constructorTypes = ['address', 'address'];
+    constructorArgs = [wethAddress, usdcAddress, ownerAddress];
+    constructorTypes = ['address', 'address', 'address'];
   } else {
     // Universal adapter works with both Katana (Ronin) and Uniswap (Base) routers
     const routerAddress = options.router ||
       (network === 'base' ? DEX_ROUTERS[network]?.uniswap : DEX_ROUTERS[network]?.katana);
+    const ownerAddress = options.owner || clients.account.address;
 
     if (!routerAddress) {
       throw new Error(`No default router address for ${network}`);
@@ -59,8 +61,8 @@ export async function deployAdapter(
 
     contractName = 'UniversalSwapAdapter';
     contractPath = `${contractName}.sol`;
-    constructorArgs = [routerAddress];
-    constructorTypes = ['address'];
+    constructorArgs = [routerAddress, ownerAddress];
+    constructorTypes = ['address', 'address'];
   }
 
   const verification = options.skipVerification ? undefined : getVerificationConfig(network);
@@ -104,6 +106,8 @@ async function main() {
   console.log(`Network:     ${network.toUpperCase()}`);
   console.log(`Adapter:     ${adapterType.toUpperCase()}`);
 
+  const ownerAddress = options.owner || clients.account.address;
+
   if (adapterType === 'dummy') {
     const wethAddress = options.weth || TOKEN_CONFIGS[network]?.weth?.address;
     const usdcAddress = options.usdc || TOKEN_CONFIGS[network]?.usdc?.address;
@@ -116,7 +120,8 @@ async function main() {
     console.log(`Router:      ${routerAddress}`);
   }
 
-  console.log(`Owner:       ${clients.account.address} (deployer)`);
+  console.log(`Deployer:    ${clients.account.address}`);
+  console.log(`Owner:       ${ownerAddress}`);
   console.log(`Salt:        ${CREATE3_SALT}`);
   console.log('─────────────────────────────────────────\n');
 
@@ -129,12 +134,14 @@ async function main() {
     console.log('║      Already Deployed                  ║');
     console.log('╚════════════════════════════════════════╝');
     console.log(`Adapter Address: ${result.address}`);
+    console.log(`Owner Address:   ${ownerAddress}`);
     console.log('\n✅ Adapter already deployed at this address!');
   } else {
     console.log('╔════════════════════════════════════════╗');
     console.log('║         Deployment Success             ║');
     console.log('╚════════════════════════════════════════╝');
     console.log(`Adapter Address: ${result.address}`);
+    console.log(`Owner Address:   ${ownerAddress}`);
     console.log(`Transaction:     ${result.txHash}`);
     console.log(`Gas Used:        ${result.gasUsed}`);
     console.log('\n✅ Adapter deployed successfully!');

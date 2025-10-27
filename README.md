@@ -11,11 +11,11 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 
 * Base:
   * Arcade: [0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319](https://basescan.org/address/0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319)
-  * Dex adapter: [0x630E7e9170fc4d7413801b752fc307eA97f8906F](https://basescan.org/address/0x630E7e9170fc4d7413801b752fc307eA97f8906F)
+  * Dex adapter: [0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425](https://basescan.org/address/0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425)
 
 * Ronin:
   * Arcade: [0xADDab16d0feC4534899168470cC8853C9b3EBCFb](https://app.roninchain.com/address/0xADDab16d0feC4534899168470cC8853C9b3EBCFb)
-  * DEX adapter: [0x630E7e9170fc4d7413801b752fc307eA97f8906F](https://app.roninchain.com/address/0x630E7e9170fc4d7413801b752fc307eA97f8906F)
+  * DEX adapter: [0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425](https://app.roninchain.com/address/0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425)
 
 ## Usage guide
 
@@ -116,7 +116,7 @@ targets: {
       "0x...", // govToken
       "0x...", // usdcToken
       "0x...", // signer
-      "0x630E7e9170fc4d7413801b752fc307eA97f8906F", // swapAdapter <- UPDATE THIS
+      "0x...", // swapAdapter <- UPDATE THIS
     ],
   }
 }

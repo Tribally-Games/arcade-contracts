@@ -28,7 +28,7 @@ contract UniversalSwapAdapterTest is Test {
         router = new MockUniversalRouter(address(weth), address(usdc));
 
         vm.prank(owner);
-        adapter = new UniversalSwapAdapter(address(router));
+        adapter = new UniversalSwapAdapter(address(router), owner);
 
         usdc.mint(address(router), INITIAL_ROUTER_USDC);
 
@@ -43,7 +43,12 @@ contract UniversalSwapAdapterTest is Test {
 
     function test_Constructor_RevertsWhenRouterIsZeroAddress() public {
         vm.expectRevert(UniversalSwapAdapter.InvalidAddress.selector);
-        new UniversalSwapAdapter(address(0));
+        new UniversalSwapAdapter(address(0), owner);
+    }
+
+    function test_Constructor_RevertsWhenOwnerIsZeroAddress() public {
+        vm.expectRevert(UniversalSwapAdapter.InvalidAddress.selector);
+        new UniversalSwapAdapter(address(router), address(0));
     }
 
     function test_Constructor_SetsCorrectAddresses() public view {
@@ -54,7 +59,7 @@ contract UniversalSwapAdapterTest is Test {
     function test_Constructor_SetsDeployerAsOwner() public {
         address deployer = address(0x1111);
         vm.prank(deployer);
-        UniversalSwapAdapter newAdapter = new UniversalSwapAdapter(address(router));
+        UniversalSwapAdapter newAdapter = new UniversalSwapAdapter(address(router), deployer);
         assertEq(newAdapter.owner(), deployer);
     }
 

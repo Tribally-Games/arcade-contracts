@@ -4,13 +4,14 @@ import { type Hex } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClients } from './utils';
+import { deployWithCreate3, getPredictedAddress } from './create3-deploy';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
-const KNOWN_WETH_ADDRESS = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9' as Hex;
-const KNOWN_USDC_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as Hex;
-const KNOWN_TRIBAL_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512' as Hex;
-const KNOWN_ADAPTER_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9' as Hex;
+const USDC_SALT = '0x555344435f544553545f544f4b454e0000000000000000000000000000000001' as Hex;
+const TRIBAL_SALT = '0x545249424144414c5f544553545f544f4b454e00000000000000000000000001' as Hex;
+const WETH_SALT = '0x574554485f4d4f434b5f544f4b454e0000000000000000000000000000000001' as Hex;
+const ADAPTER_SALT = '0x4445585f41444150544552000000000000000000000000000000000000013aff' as Hex;
 
 async function deployLocalDevnetContracts() {
   console.log('Running predeploy script for local devnet target...');
@@ -19,151 +20,124 @@ async function deployLocalDevnetContracts() {
 
   console.log(`Using deployer address: ${clients.account.address}`);
 
-  const artifactPath = join(process.cwd(), 'out/TestERC20.sol/TestERC20.json');
-  const artifact = JSON.parse(readFileSync(artifactPath, 'utf-8'));
+  const erc20Artifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'out/TestERC20.sol/TestERC20.json'), 'utf-8')
+  );
+  const wethArtifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'out/MockWETH.sol/MockWETH.json'), 'utf-8')
+  );
 
-  async function deployToken(
-    name: string,
-    symbol: string,
-    decimals: number,
-    knownAddress: Hex,
-    mintAmount: bigint
-  ) {
-    const bytecode = artifact.bytecode.object as Hex;
+  console.log('\n📦 Deploying USDC with CREATE3...');
+  const usdcResult = await deployWithCreate3(clients, {
+    contractName: 'TestERC20',
+    contractPath: 'TestERC20.sol',
+    constructorArgs: ['TestUSDC', 'tUSDC', 6],
+    constructorTypes: ['string', 'string', 'uint8'],
+    salt: USDC_SALT,
+  });
+  const usdcAddress = usdcResult.address;
+  console.log(`✓ USDC deployed at ${usdcAddress}`);
 
-    const code = await clients.publicClient.getCode({ address: knownAddress });
-
-    if (code && code !== '0x') {
-      console.log(`✓ ${name} already deployed at ${knownAddress}`);
-      return knownAddress;
-    }
-
-    console.log(`Deploying ${name} (${symbol}) with ${decimals} decimals...`);
-
-    const hash = await clients.walletClient.deployContract({
-      abi: artifact.abi,
-      bytecode: bytecode,
-      args: [name, symbol, decimals],
-      account: clients.account,
-    });
-
-    console.log(`Deploy transaction: ${hash}`);
-
-    const receipt = await clients.publicClient.waitForTransactionReceipt({ hash });
-
-    if (!receipt.contractAddress) {
-      throw new Error('Failed to deploy contract - no address in receipt');
-    }
-
-    console.log(`Minting initial balance to deployer...`);
-
+  if (!usdcResult.alreadyDeployed) {
+    console.log('Minting USDC to deployer...');
     const mintHash = await clients.walletClient.writeContract({
-      address: receipt.contractAddress,
-      abi: artifact.abi,
+      address: usdcAddress,
+      abi: erc20Artifact.abi,
       functionName: 'mint',
-      args: [clients.account.address, mintAmount],
+      args: [clients.account.address, 10000000000n],
       account: clients.account,
     });
-
     await clients.publicClient.waitForTransactionReceipt({ hash: mintHash });
-
-    console.log(`✓ ${name} deployed successfully`);
-    console.log(`Token address: ${receipt.contractAddress}`);
-
-    return receipt.contractAddress;
+    console.log('✓ Minted 10,000 USDC to deployer');
   }
 
-  await deployToken('TestUSDC', 'tUSDC', 6, KNOWN_USDC_ADDRESS, 1000000000n);
-  await deployToken('TestTRIBAL', 'tTRIBAL', 18, KNOWN_TRIBAL_ADDRESS, 1000000000000000000000n);
+  console.log('\n📦 Deploying TRIBAL with CREATE3...');
+  const tribalResult = await deployWithCreate3(clients, {
+    contractName: 'TestERC20',
+    contractPath: 'TestERC20.sol',
+    constructorArgs: ['TestTRIBAL', 'tTRIBAL', 18],
+    constructorTypes: ['string', 'string', 'uint8'],
+    salt: TRIBAL_SALT,
+  });
+  const tribalAddress = tribalResult.address;
+  console.log(`✓ TRIBAL deployed at ${tribalAddress}`);
 
-  const wethArtifactPath = join(process.cwd(), 'out/MockWETH.sol/MockWETH.json');
-  const wethArtifact = JSON.parse(readFileSync(wethArtifactPath, 'utf-8'));
-
-  const wethCode = await clients.publicClient.getCode({ address: KNOWN_WETH_ADDRESS });
-  let wethAddress: Hex;
-
-  if (wethCode && wethCode !== '0x') {
-    console.log(`✓ MockWETH already deployed at ${KNOWN_WETH_ADDRESS}`);
-    wethAddress = KNOWN_WETH_ADDRESS;
-  } else {
-    console.log('Deploying MockWETH...');
-    const wethHash = await clients.walletClient.deployContract({
-      abi: wethArtifact.abi,
-      bytecode: wethArtifact.bytecode.object as Hex,
-      args: [],
+  if (!tribalResult.alreadyDeployed) {
+    console.log('Minting TRIBAL to deployer...');
+    const mintHash = await clients.walletClient.writeContract({
+      address: tribalAddress,
+      abi: erc20Artifact.abi,
+      functionName: 'mint',
+      args: [clients.account.address, 1000000000000000000000n],
       account: clients.account,
     });
+    await clients.publicClient.waitForTransactionReceipt({ hash: mintHash });
+    console.log('✓ Minted 1,000 TRIBAL to deployer');
+  }
 
-    console.log(`Deploy transaction: ${wethHash}`);
-    const wethReceipt = await clients.publicClient.waitForTransactionReceipt({ hash: wethHash });
+  console.log('\n📦 Deploying MockWETH with CREATE3...');
+  const wethResult = await deployWithCreate3(clients, {
+    contractName: 'MockWETH',
+    contractPath: 'MockWETH.sol',
+    constructorArgs: [],
+    constructorTypes: [],
+    salt: WETH_SALT,
+  });
+  const wethAddress = wethResult.address;
+  console.log(`✓ MockWETH deployed at ${wethAddress}`);
 
-    if (!wethReceipt.contractAddress) {
-      throw new Error('Failed to deploy MockWETH - no address in receipt');
-    }
-
-    wethAddress = wethReceipt.contractAddress;
-    console.log(`✓ MockWETH deployed successfully at ${wethAddress}`);
-
-    console.log('Wrapping 1000 ETH to WETH...');
+  if (!wethResult.alreadyDeployed) {
+    console.log('Wrapping 100 ETH to WETH...');
     const depositHash = await clients.walletClient.sendTransaction({
       to: wethAddress,
-      value: 1000n * 10n ** 18n,
+      value: 100n * 10n ** 18n,
       account: clients.account,
     });
     await clients.publicClient.waitForTransactionReceipt({ hash: depositHash });
-    console.log('✓ Wrapped 1000 ETH to WETH');
+    console.log('✓ Wrapped 100 ETH to WETH');
   }
 
-  const adapterArtifactPath = join(process.cwd(), 'out/DummyDexAdapter.sol/DummyDexAdapter.json');
-  const adapterArtifact = JSON.parse(readFileSync(adapterArtifactPath, 'utf-8'));
+  console.log('\n📦 Deploying DummyDexAdapter with CREATE3...');
+  const adapterResult = await deployWithCreate3(clients, {
+    contractName: 'DummyDexAdapter',
+    contractPath: 'DummyDexAdapter.sol',
+    constructorArgs: [wethAddress, usdcAddress, clients.account.address],
+    constructorTypes: ['address', 'address', 'address'],
+    salt: ADAPTER_SALT,
+  });
+  const adapterAddress = adapterResult.address;
+  console.log(`✓ DummyDexAdapter deployed at ${adapterAddress}`);
 
-  const adapterCode = await clients.publicClient.getCode({ address: KNOWN_ADAPTER_ADDRESS });
-
-  if (adapterCode && adapterCode !== '0x') {
-    console.log(`✓ DummyDexAdapter already deployed at ${KNOWN_ADAPTER_ADDRESS}`);
-  } else {
-    console.log('Deploying DummyDexAdapter...');
-    const adapterHash = await clients.walletClient.deployContract({
-      abi: adapterArtifact.abi,
-      bytecode: adapterArtifact.bytecode.object as Hex,
-      args: [wethAddress, KNOWN_USDC_ADDRESS],
-      account: clients.account,
-    });
-
-    console.log(`Deploy transaction: ${adapterHash}`);
-    const adapterReceipt = await clients.publicClient.waitForTransactionReceipt({ hash: adapterHash });
-
-    if (!adapterReceipt.contractAddress) {
-      throw new Error('Failed to deploy DummyDexAdapter - no address in receipt');
-    }
-
-    console.log(`✓ DummyDexAdapter deployed successfully at ${adapterReceipt.contractAddress}`);
-
-    console.log('Adding initial liquidity (100 WETH + 200,000 USDC)...');
+  if (!adapterResult.alreadyDeployed) {
+    console.log('\n💧 Adding initial liquidity (100 WETH + 100 USDC)...');
 
     const wethAmount = 100n * 10n ** 18n;
-    const usdcAmount = 200000n * 10n ** 6n;
+    const usdcAmount = 100n * 10n ** 6n;
 
     const approveWethHash = await clients.walletClient.writeContract({
       address: wethAddress,
       abi: wethArtifact.abi,
       functionName: 'approve',
-      args: [adapterReceipt.contractAddress, wethAmount],
+      args: [adapterAddress, wethAmount],
       account: clients.account,
     });
     await clients.publicClient.waitForTransactionReceipt({ hash: approveWethHash });
 
     const approveUsdcHash = await clients.walletClient.writeContract({
-      address: KNOWN_USDC_ADDRESS,
-      abi: artifact.abi,
+      address: usdcAddress,
+      abi: erc20Artifact.abi,
       functionName: 'approve',
-      args: [adapterReceipt.contractAddress, usdcAmount],
+      args: [adapterAddress, usdcAmount],
       account: clients.account,
     });
     await clients.publicClient.waitForTransactionReceipt({ hash: approveUsdcHash });
 
+    const adapterArtifact = JSON.parse(
+      readFileSync(join(process.cwd(), 'out/DummyDexAdapter.sol/DummyDexAdapter.json'), 'utf-8')
+    );
+
     const addLiquidityHash = await clients.walletClient.writeContract({
-      address: adapterReceipt.contractAddress,
+      address: adapterAddress,
       abi: adapterArtifact.abi,
       functionName: 'addLiquidity',
       args: [wethAmount, usdcAmount],
@@ -171,9 +145,16 @@ async function deployLocalDevnetContracts() {
     });
     await clients.publicClient.waitForTransactionReceipt({ hash: addLiquidityHash });
 
-    console.log('✓ Initial liquidity added (100 WETH + 200,000 USDC)');
-    console.log(`  Initial price: 1 WETH = 2,000 USDC`);
+    console.log('✓ Initial liquidity added (100 WETH + 100 USDC)');
+    console.log('  Initial price: 1 WETH = 1 USDC');
   }
+
+  console.log('\n✅ All contracts deployed successfully!\n');
+  console.log('Contract Addresses:');
+  console.log(`  USDC:    ${usdcAddress}`);
+  console.log(`  TRIBAL:  ${tribalAddress}`);
+  console.log(`  WETH:    ${wethAddress}`);
+  console.log(`  Adapter: ${adapterAddress}`);
 }
 
 async function main() {

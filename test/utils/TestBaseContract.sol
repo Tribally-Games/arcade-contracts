@@ -95,7 +95,7 @@ abstract contract TestBaseContract is Test {
 
     MockWETH weth = new MockWETH();
     vm.prank(owner);
-    DummyDexAdapter swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken));
+    DummyDexAdapter swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
 
     InitDiamond init = new InitDiamond();
     IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(swapAdapter)));

@@ -66,17 +66,17 @@ export const TOKEN_CONFIGS: Record<string, NetworkTokens> = {
       decimals: 18,
     },
     weth: {
-      address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+      address: '0x662113AF572d65cB6FBC144F1ECeF4EB6e7c608C',
       symbol: 'WETH',
       decimals: 18,
     },
     usdc: {
-      address: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+      address: '0x302916C3a7Fe06B120b92d91A07A92180fa18625',
       symbol: 'USDC',
       decimals: 6,
     },
     tribal: {
-      address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+      address: '0x7fB0e77f4B958FCdEE59564E4e6526EAB2002141',
       symbol: 'TRIBAL',
       decimals: 18,
     },
@@ -88,17 +88,17 @@ export const TOKEN_CONFIGS: Record<string, NetworkTokens> = {
       decimals: 18,
     },
     weth: {
-      address: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+      address: '0x662113AF572d65cB6FBC144F1ECeF4EB6e7c608C',
       symbol: 'WETH',
       decimals: 18,
     },
     usdc: {
-      address: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+      address: '0x302916C3a7Fe06B120b92d91A07A92180fa18625',
       symbol: 'USDC',
       decimals: 6,
     },
     tribal: {
-      address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+      address: '0x7fB0e77f4B958FCdEE59564E4e6526EAB2002141',
       symbol: 'TRIBAL',
       decimals: 18,
     },
@@ -113,10 +113,10 @@ export const DEX_ROUTERS: Record<string, { katana?: `0x${string}`; uniswap?: `0x
     uniswap: '0x6fF5693b99212Da76ad316178A184AB56D299b43',
   },
   devnet1: {
-    dummy: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
+    dummy: '0x4cBac2f21c2c8bBeC82612Ed5FAc526DD211e991',
   },
   devnet2: {
-    dummy: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
+    dummy: '0x4cBac2f21c2c8bBeC82612Ed5FAc526DD211e991',
   },
 };
 
@@ -136,11 +136,11 @@ export const NETWORK_CONFIGS: Record<string, NetworkConfig> = {
     wrappedSymbol: 'WETH',
   },
   local: {
-    wethAddress: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0',
-    usdcAddress: '0x5fbdb2315678afecb367f032d93f642f64180aa3',
+    wethAddress: '0x662113AF572d65cB6FBC144F1ECeF4EB6e7c608C',
+    usdcAddress: '0x302916C3a7Fe06B120b92d91A07A92180fa18625',
     feeTier: 3000,
-    nativeSymbol: 'TOKEN',
-    wrappedSymbol: 'TOKEN',
+    nativeSymbol: 'ETH',
+    wrappedSymbol: 'WETH',
   },
 };
 

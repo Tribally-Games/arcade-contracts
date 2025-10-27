@@ -24,12 +24,13 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
     error InvalidAddress();
     error InvalidDeadline();
 
-    constructor(address _universalRouter) {
+    constructor(address _universalRouter, address _owner) {
         if (_universalRouter == address(0)) revert InvalidAddress();
+        if (_owner == address(0)) revert InvalidAddress();
 
         universalRouter = _universalRouter;
 
-        _transferOwnership(msg.sender);
+        _transferOwnership(_owner);
     }
 
     function getQuote(

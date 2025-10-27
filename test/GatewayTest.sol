@@ -53,7 +53,7 @@ contract GatewayTest is TestBaseContract {
 
     weth = new MockWETH();
     vm.prank(owner);
-    swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken));
+    swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
     otherToken = new MockERC20();
 
 
