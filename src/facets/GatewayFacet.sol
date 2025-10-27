@@ -35,6 +35,8 @@ contract GatewayFacet is ReentrancyGuard {
     uint256 _minUsdcAmount,
     bytes calldata _swapData
   ) external payable nonReentrant {
+    if (_user == address(0)) revert LibErrors.InvalidInputs();
+
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     bool isNative = _token == address(0);

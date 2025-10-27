@@ -363,6 +363,24 @@ contract DummyDexAdapterTest is Test {
         assertEq(quoteAmount, expectedOut);
     }
 
+    function test_GetQuote_NativeToUsdc_WithMsgValue_ReturnsCorrectAmount() public {
+        uint256 amountIn = 1 ether;
+
+        vm.prank(user);
+        uint256 quoteAmount = adapter.getQuote{ value: amountIn }(address(0), 0, "");
+
+        uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_GetQuote_NativeToUsdc_UsesAmountInWhenNoMsgValue() public {
+        uint256 amountIn = 1 ether;
+        uint256 quoteAmount = adapter.getQuote(address(0), amountIn, "");
+
+        uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
+        assertEq(quoteAmount, expectedOut);
+    }
+
     function test_GetQuote_UsdcToWeth_ReturnsCorrectAmount() public {
         uint256 amountIn = 1000e6;
         uint256 quoteAmount = adapter.getQuote(address(usdc), amountIn, "");

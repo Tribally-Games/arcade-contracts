@@ -51,7 +51,10 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
         bool isNative = tokenIn == address(0);
         bool isWethToUsdc;
 
-        if (isNative || tokenIn == wrappedNativeToken) {
+        if (isNative) {
+            amountIn = msg.value > 0 ? msg.value : amountIn;
+            isWethToUsdc = true;
+        } else if (tokenIn == wrappedNativeToken) {
             isWethToUsdc = true;
         } else if (tokenIn == usdcToken) {
             isWethToUsdc = false;

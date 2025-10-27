@@ -204,6 +204,16 @@ contract GatewayTest is TestBaseContract {
     assertTrue(foundEvent);
   }
 
+  function test_Deposit_RevertsWhenUserIsZeroAddress() public {
+    uint256 amount = 1000e6;
+
+    vm.startPrank(account1);
+    usdcToken.approve(diamond, amount);
+    vm.expectRevert(LibErrors.InvalidInputs.selector);
+    gatewayFacet.deposit(address(0), address(usdcToken), amount, 0, "");
+    vm.stopPrank();
+  }
+
   function test_CalculateUsdc_UsdcDirect_ReturnsAmount() public {
     uint256 amount = 1000e6;
     uint256 usdcOut = gatewayFacet.calculateUsdc(address(usdcToken), amount, "");
