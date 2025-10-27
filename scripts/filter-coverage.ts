@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const LCOV_FILE = join(process.cwd(), 'lcov.info');
-const EXCLUDE_PATHS = ['src/mocks/', 'src/generated/', 'test/utils/'];
+const EXCLUDE_PATHS = ['src/mocks/', 'src/generated/', 'test/'];
 
 function filterLcovFile() {
   const content = readFileSync(LCOV_FILE, 'utf-8');
