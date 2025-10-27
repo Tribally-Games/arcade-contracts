@@ -62,11 +62,14 @@ BASESCAN_API_KEY=<your basescan api key>
 
 ### Usage
 
-Run a local dev node in a separate terminal:
+Run a local devnet node in a separate terminal:
 
 ```shell
-bun run devnet
+bun run devnet1
 ```
+
+_Note: there is a second devnet (`devnet2`) you can run and deploy to as well. This is useful for when 
+we wish to test multiple chains in the arcade._
 
 To build the code:
 
@@ -80,10 +83,10 @@ To run the tests:
 $ bun run test
 ```
 
-To deploy to the local target:
+To deploy to the devnet1 target:
 
 ```shell
-$ bun run dep local --new
+$ bun run dep devnet1 --new
 ```
 
 To deploy to public networks:
