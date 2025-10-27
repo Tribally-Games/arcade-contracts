@@ -163,6 +163,26 @@ contract GatewayTest is TestBaseContract {
     gatewayFacet.deposit{ value: amount }(account1, address(0), amount, minUsdc, "");
   }
 
+  function test_Deposit_FailsWhenSwapReturnsLessThanMinUsdcAmount() public {
+    InsufficientOutputSwapAdapter insufficientAdapter = new InsufficientOutputSwapAdapter(
+      address(weth),
+      address(usdcToken)
+    );
+
+    vm.prank(owner);
+    configFacet.updateSwapAdapter(address(insufficientAdapter));
+
+    usdcToken.mint(address(insufficientAdapter), 10_000e6);
+
+    uint256 amount = 1 ether;
+    uint256 minUsdc = 1000e6;
+
+    vm.startPrank(account1);
+    vm.expectRevert(abi.encodeWithSelector(LibErrors.InsufficientUsdcReceived.selector, 500e6, minUsdc));
+    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, minUsdc, "");
+    vm.stopPrank();
+  }
+
   function test_Deposit_MultipleDeposits_AccumulatesBalance() public {
     vm.startPrank(account1);
     usdcToken.approve(diamond, 3000e6);
@@ -439,5 +459,37 @@ contract MaliciousSwapAdapter {
 
   function getQuote(address, uint256, bytes calldata) external pure returns (uint256) {
     return 1000e6;
+  }
+}
+
+contract InsufficientOutputSwapAdapter {
+  using SafeERC20 for IERC20;
+
+  address public immutable weth;
+  address public immutable usdc;
+
+  constructor(address _weth, address _usdc) {
+    weth = _weth;
+    usdc = _usdc;
+  }
+
+  function swap(
+    address tokenIn,
+    uint256 amountIn,
+    uint256,
+    bytes calldata
+  ) external payable returns (uint256 amountOut) {
+    if (tokenIn != address(0)) {
+      IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+    }
+
+    amountOut = 500e6;
+    IERC20(usdc).safeTransfer(msg.sender, 500e6);
+
+    return amountOut;
+  }
+
+  function getQuote(address, uint256, bytes calldata) external pure returns (uint256) {
+    return 500e6;
   }
 }

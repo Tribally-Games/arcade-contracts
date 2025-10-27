@@ -6,11 +6,6 @@ import { LibAppStorage } from "src/libs/LibAppStorage.sol";
 
 
 library LibUsdcToken {
-    function transferFrom(address _from, uint256 _amount) internal {
-        address token = LibAppStorage.diamondStorage().usdcToken;
-        LibToken.transferFrom(token, _from, _amount);
-    }
-
     function transferTo(address _to, uint256 _amount) internal {
         address token = LibAppStorage.diamondStorage().usdcToken;
         LibToken.transferTo(token, _to, _amount);

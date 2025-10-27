@@ -6,6 +6,8 @@ import { TestBaseContract } from "./utils/TestBaseContract.sol";
 import { LibErrors } from "src/libs/LibErrors.sol";
 import { InitDiamond } from "src/init/InitDiamond.sol";
 import { IDiamondCut } from "lib/diamond-2-hardhat/contracts/interfaces/IDiamondCut.sol";
+import { Diamond } from "lib/diamond-2-hardhat/contracts/Diamond.sol";
+import { DiamondCutFacet } from "lib/diamond-2-hardhat/contracts/facets/DiamondCutFacet.sol";
 
 interface IConfigFacet {
   function signer() external view returns (address);
@@ -139,6 +141,21 @@ contract ConfigTest is TestBaseContract {
       cuts,
       address(init),
       abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(0x1))
+    );
+  }
+
+  function test_Init_FailsWithInvalidSwapAdapter() public {
+    DiamondCutFacet diamondCutFacet = new DiamondCutFacet();
+    address newDiamond = address(new Diamond(owner, address(diamondCutFacet)));
+
+    InitDiamond init = new InitDiamond();
+    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
+
+    vm.expectRevert(abi.encodeWithSelector(LibErrors.InvalidSwapAdapter.selector));
+    IDiamondCut(newDiamond).diamondCut(
+      cuts,
+      address(init),
+      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(0))
     );
   }
 }
