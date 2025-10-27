@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [1.3.0](https://github.com/Tribally-Games/arcade-contracts/compare/v1.2.0...v1.3.0) (2025-10-27)
+
+
+### Features
+
+* implement DEX adapters for multi-token deposits ([#3](https://github.com/Tribally-Games/arcade-contracts/issues/3)) ([44cec4f](https://github.com/Tribally-Games/arcade-contracts/commit/44cec4f74286e18b4798bb3745ab67d2d00493a9))
+
 ## [1.2.0](https://github.com/Tribally-Games/arcade-contracts/compare/v1.1.3...v1.2.0) (2025-10-19)
 
 
