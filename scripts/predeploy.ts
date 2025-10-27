@@ -4,7 +4,6 @@ import { type Hex } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClients } from './utils';
-import { deployAdapter } from './deploy-adapter';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
@@ -187,17 +186,33 @@ async function main() {
   } else if (TARGET === 'ronin' || TARGET === 'base') {
     console.log(`Running predeploy script for ${TARGET} target...`);
     console.log('\n╔════════════════════════════════════════╗');
-    console.log('║     DEX Adapter Deployment             ║');
+    console.log('║     DEX Adapter Verification           ║');
     console.log('╚════════════════════════════════════════╝\n');
 
-    const result = await deployAdapter(TARGET, { skipVerification: true });
+    const configPath = join(process.cwd(), 'gemforge.config.cjs');
+    const config = require(configPath);
 
-    if (result.alreadyDeployed) {
-      console.log('\n✅ DEX Adapter already deployed');
-    } else {
-      console.log('\n✅ DEX Adapter deployed successfully');
+    const targetConfig = config.targets[TARGET];
+    if (!targetConfig || !targetConfig.initArgs || targetConfig.initArgs.length < 4) {
+      throw new Error(`Invalid target configuration for ${TARGET} in gemforge.config.cjs`);
     }
-    console.log(`📍 Adapter Address: ${result.address}\n`);
+
+    const adapterAddress = targetConfig.initArgs[3] as Hex;
+    console.log(`Checking adapter deployment at: ${adapterAddress}`);
+
+    const clients = createClients(TARGET);
+    const code = await clients.publicClient.getCode({ address: adapterAddress });
+
+    if (!code || code === '0x') {
+      console.error('\n❌ DEX Adapter not deployed!');
+      console.error('\nTo deploy the adapter:');
+      console.error(`  1. Run: bun run scripts/deploy-adapter.ts ${TARGET}`);
+      console.error(`  2. Update gemforge.config.cjs targets.${TARGET}.initArgs[3] with the deployed adapter address`);
+      console.error(`  3. Retry deployment\n`);
+      throw new Error('DEX Adapter must be deployed before deploying the Arcade contract');
+    }
+
+    console.log('✅ DEX Adapter verified at address\n');
   } else {
     console.log(`Skipping predeploy - target is ${TARGET}`);
   }

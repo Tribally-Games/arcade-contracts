@@ -6,7 +6,7 @@ import { DEX_ROUTERS, TOKEN_CONFIGS } from './gateway-utils';
 import { type Hex } from 'viem';
 import { deployWithCreate3, type DeployResult } from './create3-deploy';
 
-const CREATE3_SALT = '0x4445585f41444150544552000000000000000000000000000000000000012aff' as Hex;
+const CREATE3_SALT = '0x4445585f41444150544552000000000000000000000000000000000000013aff' as Hex;
 
 export async function deployAdapter(
   network: string,

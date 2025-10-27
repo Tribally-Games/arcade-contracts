@@ -10,12 +10,12 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 ## On-chain addresses
 
 * Base:
-  * Aracde: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
-  * Dex adapter: 
+  * Arcade: [0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319](https://basescan.org/address/0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319)
+  * Dex adapter: [0x630E7e9170fc4d7413801b752fc307eA97f8906F](https://basescan.org/address/0x630E7e9170fc4d7413801b752fc307eA97f8906F)
 
 * Ronin:
-  * Arcade: [0x1224849B354a93C0BEe656E7779b584Ca2a03D5E](https://basescan.org/address/0x1224849B354a93C0BEe656E7779b584Ca2a03D5E)
-  * DEX adapter: [0xeca69B3523fBAdDc16adf80A88b4c7b52F788AcB](https://app.roninchain.com/address/0xeca69b3523fbaddc16adf80a88b4c7b52f788acb)
+  * Arcade: [0xADDab16d0feC4534899168470cC8853C9b3EBCFb](https://app.roninchain.com/address/0xADDab16d0feC4534899168470cC8853C9b3EBCFb)
+  * DEX adapter: [0x630E7e9170fc4d7413801b752fc307eA97f8906F](https://app.roninchain.com/address/0x630E7e9170fc4d7413801b752fc307eA97f8906F)
 
 ## Usage guide
 
@@ -83,12 +83,54 @@ $ bun run test
 To deploy to the local target:
 
 ```shell
-$ bun run dep local
+$ bun run dep local --new
 ```
 
 To deploy to public networks:
 
-* Base mainnet: `bun run dep base`
+* Base mainnet: `bun run dep base --new`
+
+### Deploying to a new chain
+
+Before deploying the Arcade contract to a new chain, you must first deploy the DEX adapter:
+
+**Step 1: Deploy the DEX adapter**
+
+```shell
+bun run scripts/deploy-adapter.ts <network>
+```
+
+For example, to deploy to Base:
+```shell
+bun run scripts/deploy-adapter.ts base
+```
+
+**Step 2: Update gemforge.config.cjs**
+
+Update the target's `initArgs` with the deployed adapter address (4th parameter):
+
+```js
+targets: {
+  base: {
+    initArgs: [
+      "0x...", // govToken
+      "0x...", // usdcToken
+      "0x...", // signer
+      "0x630E7e9170fc4d7413801b752fc307eA97f8906F", // swapAdapter <- UPDATE THIS
+    ],
+  }
+}
+```
+
+**Step 3: Deploy the Arcade contract**
+
+```shell
+bun run dep <network> --new
+```
+
+The predeploy script will verify the adapter is deployed before proceeding. If the adapter is not deployed, you will see a clear error message with instructions.
+
+### Verifying contracts
 
 Once deployed you can verify contract source-codes on Basescan using:
 

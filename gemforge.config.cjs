@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const SALT = "0xf93ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1937"
+const SALT = "0xf02ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1948"
 
 module.exports = {
   version: 2,
@@ -135,17 +135,9 @@ module.exports = {
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
         "0x000000000000000000000000000000000000dead",
-        "0x5037b42D80fBAa5B8F02437CA39EcedC781dC8F9"
+        "0x630E7e9170fc4d7413801b752fc307eA97f8906F"
       ],
       create3Salt: SALT,
-      upgrades: {
-        manualCut: true
-      }
-    },
-    baseFork: {
-      network: 'baseFork',
-      wallet: 'local_wallet',
-      initArgs: [],
       upgrades: {
         manualCut: true
       }
@@ -157,9 +149,17 @@ module.exports = {
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
         "0x000000000000000000000000000000000000dead",
-        "0x5037b42D80fBAa5B8F02437CA39EcedC781dC8F9"
+        "0x630E7e9170fc4d7413801b752fc307eA97f8906F"
       ],
       create3Salt: SALT,
+      upgrades: {
+        manualCut: true
+      }
+    },
+    baseFork: {
+      network: 'baseFork',
+      wallet: 'local_wallet',
+      initArgs: [],
       upgrades: {
         manualCut: true
       }
