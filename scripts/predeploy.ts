@@ -87,14 +87,14 @@ async function deployLocalDevnetContracts() {
   console.log(`✓ MockWETH deployed at ${wethAddress}`);
 
   if (!wethResult.alreadyDeployed) {
-    console.log('Wrapping 100 ETH to WETH...');
+    console.log('Wrapping 1000 ETH to WETH...');
     const depositHash = await clients.walletClient.sendTransaction({
       to: wethAddress,
-      value: 100n * 10n ** 18n,
+      value: 1000n * 10n ** 18n,
       account: clients.account,
     });
     await clients.publicClient.waitForTransactionReceipt({ hash: depositHash });
-    console.log('✓ Wrapped 100 ETH to WETH');
+    console.log('✓ Wrapped 1000 ETH to WETH');
   }
 
   console.log('\n📦 Deploying DummyDexAdapter with CREATE3...');
