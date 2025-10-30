@@ -11,6 +11,11 @@ library LibToken {
         SafeERC20.safeTransferFrom(token, _from, address(this), _amount);
     }
 
+    function transferFrom(address _token, address _from, address _to, uint256 _amount) internal {
+        IERC20 token = IERC20(_token);
+        SafeERC20.safeTransferFrom(token, _from, _to, _amount);
+    }
+
     function transferTo(address _token, address _to, uint256 _amount) internal {
         IERC20 token = IERC20(_token);
         SafeERC20.safeTransfer(token, _to, _amount);

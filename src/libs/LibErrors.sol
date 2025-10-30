@@ -29,4 +29,6 @@ library LibErrors {
   error SwapFailed();
 
   error InvalidSwapOutput();
+
+  error CalculatedAmountOut(uint256 amountOut);
 }

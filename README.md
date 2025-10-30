@@ -3,6 +3,8 @@
 
 # @tribally.games/arcade-contracts
 
+**NOTE: at present non-USDC deposits on Base don't work! The adapter works for quotes and swaps but deposits and quotes via the gateway don't yet work for some unknown reason**
+
 Arcade smart contracts for [Tribally Games](https://tribally.games).
 
 This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeable proxy contract managed using [Gemforge](https://gemforge.xyz/).
@@ -10,12 +12,12 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 ## On-chain addresses
 
 * Base:
-  * Arcade: [0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319](https://basescan.org/address/0xBC34eAfDB8B061D905e114B52D4Fb0bC46a02319)
-  * Dex adapter: [0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425](https://basescan.org/address/0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425)
+  * Arcade: [0xBFB6774242273CC72ab4a77f19085DF29C91BbA6](https://basescan.org/address/0xBFB6774242273CC72ab4a77f19085DF29C91BbA6)
+  * Dex adapter: [0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816](https://basescan.org/address/0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816)
 
 * Ronin:
-  * Arcade: [0xADDab16d0feC4534899168470cC8853C9b3EBCFb](https://app.roninchain.com/address/0xADDab16d0feC4534899168470cC8853C9b3EBCFb)
-  * DEX adapter: [0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425](https://app.roninchain.com/address/0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425)
+  * Arcade: [0xBFB6774242273CC72ab4a77f19085DF29C91BbA6](https://app.roninchain.com/address/0xBFB6774242273CC72ab4a77f19085DF29C91BbA6)
+  * DEX adapter: [0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816](https://app.roninchain.com/address/0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816)
 
 ## Usage guide
 
@@ -69,7 +71,7 @@ bun run devnet1
 ```
 
 _Note: there is a second devnet (`devnet2`) you can run and deploy to as well. This is useful for when 
-we wish to test multiple chains in the arcade._
+we wish to test multiple chains in the arcade locally._
 
 To build the code:
 

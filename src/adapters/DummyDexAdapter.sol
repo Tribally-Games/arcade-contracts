@@ -5,6 +5,7 @@ import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
+import { LibErrors } from "../libs/LibErrors.sol";
 
 interface IWETH {
     function deposit() external payable;
@@ -50,7 +51,7 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
         address tokenIn,
         uint256 amountIn,
         bytes calldata
-    ) external payable override returns (uint256 amountOut) {
+    ) external payable override {
         bool isNative = tokenIn == address(0);
         bool isWethToUsdc;
 
@@ -65,6 +66,7 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
             revert InvalidToken();
         }
 
+        uint256 amountOut;
         if (isWethToUsdc) {
             if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
             amountOut = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
@@ -75,7 +77,7 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
             if (amountOut > reserveWETH) revert InsufficientLiquidity();
         }
 
-        return amountOut;
+        revert LibErrors.CalculatedAmountOut(amountOut);
     }
 
     function swap(

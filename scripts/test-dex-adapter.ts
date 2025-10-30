@@ -3,7 +3,7 @@
 import { getContract, encodePacked, encodeFunctionData } from 'viem';
 import { Command } from 'commander';
 import { createClients } from './utils';
-import { NETWORK_CONFIGS } from './gateway-utils';
+import { NETWORK_CONFIGS, parseCalculatedAmountOut } from './gateway-utils';
 import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
 import IERC20Artifact from '../out/IERC20.sol/IERC20.json';
 import IERC20MetadataArtifact from '../out/IERC20Metadata.sol/IERC20Metadata.json';
@@ -147,25 +147,25 @@ async function main() {
   let gasUsed: bigint | undefined;
 
   if (isQuoteMode) {
-    console.log('3. Getting quote...');
+    console.log(`3. Getting quote (token in: ${tokenIn}, amount in: ${amountIn}, swap path: ${swapPath})...`);
 
-    const { data } = await publicClient.call({
-      account: account.address,
-      to: adapterAddress,
-      value: isNative ? amountIn : undefined,
-      data: encodeFunctionData({
-        abi: ADAPTER_ABI,
-        functionName: 'getQuote',
-        args: [tokenIn, amountIn, swapPath],
-      }),
-    });
-
-    if (!data) {
-      throw new Error('Quote failed - no data returned');
+    try {
+      await publicClient.call({
+        account: account.address,
+        from: account.address,
+        to: adapterAddress,
+        value: isNative ? amountIn : undefined,
+        data: encodeFunctionData({
+          abi: ADAPTER_ABI,
+          functionName: 'getQuote',
+          args: [tokenIn, amountIn, swapPath],
+        }),
+      });
+      throw new Error('Quote did not revert as expected');
+    } catch (error: any) {
+      usdcReceived = parseCalculatedAmountOut(error);
+      console.log('   ✅ Quote received\n');
     }
-
-    usdcReceived = BigInt(data);
-    console.log('   ✅ Quote received\n');
   } else {
     console.log('3. Executing swap...');
     const swapTx = await adapter.write.swap(

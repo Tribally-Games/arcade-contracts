@@ -151,7 +151,7 @@ export async function ensureCreate3Factory(clients: ClientSetup): Promise<void> 
   }
 }
 
-async function verifyContract(
+export async function verifyContract(
   address: Hex,
   contractName: string,
   contractPath: string,
@@ -267,21 +267,8 @@ export async function deployWithCreate3(
     gasUsed = receipt.gasUsed;
   }
 
-  let verified: boolean | undefined;
-  let verificationError: string | undefined;
-
-  if (config.verification) {
-    const result = await verifyContract(
-      predictedAddress,
-      config.contractName,
-      config.contractPath,
-      config.constructorArgs,
-      config.constructorTypes,
-      config.verification
-    );
-    verified = result.success;
-    verificationError = result.error;
-  }
+  const verified: boolean | undefined = undefined;
+  const verificationError: string | undefined = undefined;
 
   return {
     address: predictedAddress,

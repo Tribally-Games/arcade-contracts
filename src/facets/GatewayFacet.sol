@@ -88,14 +88,34 @@ contract GatewayFacet is ReentrancyGuard {
     emit TriballyGatewayDeposit(_user, _token, _amount, usdcAmount);
   }
 
-  function calculateUsdc(address _token, uint256 _amount, bytes calldata _swapData) external returns (uint256) {
+  /**
+   * This should be called via eth_call as it is designed to revert.
+   * The swap adapter's getQuote will revert with CalculatedAmountOut.
+   * @param _token The token to calculate the USDC amount for.
+   * @param _amount The amount of token to calculate the USDC amount for.
+   * @param _swapData The swap data for the adapter.
+   */
+  function calculateUsdc(address _token, uint256 _amount, bytes calldata _swapData) external payable {
     AppStorage storage s = LibAppStorage.diamondStorage();
 
     if (_token == s.usdcToken) {
-      return _amount;
+      revert LibErrors.CalculatedAmountOut(_amount);
     }
 
-    return IDexSwapAdapter(s.swapAdapter).getQuote(_token, _amount, _swapData);
+    bool isNative = _token == address(0);
+
+    if (!isNative) {
+      LibToken.transferFrom(_token, msg.sender, _amount);
+      IERC20(_token).forceApprove(s.swapAdapter, _amount);
+    }
+
+    IDexSwapAdapter(s.swapAdapter).getQuote{ value: msg.value }(_token, _amount, _swapData);
+
+    if (!isNative) {
+      IERC20(_token).forceApprove(s.swapAdapter, 0);
+    }
+
+    revert LibErrors.InvalidSwapAdapter();
   }
 
   function withdraw(address _user, uint _amount,  AuthSignature calldata _sig) external nonReentrant {

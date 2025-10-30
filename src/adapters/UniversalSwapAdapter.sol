@@ -8,6 +8,7 @@ import { ReentrancyGuard } from "lib/openzeppelin-contracts/contracts/security/R
 import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
 import { IUniversalRouter } from "../interfaces/IUniversalRouter.sol";
 import { Commands } from "lib/katana-operation-contracts/src/aggregate-router/libraries/Commands.sol";
+import { LibErrors } from "../libs/LibErrors.sol";
 
 contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -37,8 +38,9 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
         address tokenIn,
         uint256 amountIn,
         bytes calldata path
-    ) external payable override returns (uint256 amountOut) {
-        return this.swap{ value: msg.value }(tokenIn, amountIn, 0, path);
+    ) external payable override {
+        uint256 amountOut = swap(tokenIn, amountIn, 0, path);
+        revert LibErrors.CalculatedAmountOut(amountOut);
     }
 
     function swap(
@@ -46,7 +48,7 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
         uint256 amountIn,
         uint256 amountOutMinimum,
         bytes calldata path
-    ) external payable override nonReentrant returns (uint256 amountOut) {
+    ) public payable override nonReentrant returns (uint256 amountOut) {
         address tokenOut = _extractOutputToken(path);
         uint256 balanceBefore = IERC20(tokenOut).balanceOf(address(this));
 

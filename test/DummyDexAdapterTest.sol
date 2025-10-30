@@ -6,6 +6,7 @@ import { DummyDexAdapter } from "src/adapters/DummyDexAdapter.sol";
 import { MockWETH } from "src/mocks/MockWETH.sol";
 import { TestERC20 } from "src/mocks/TestERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { LibErrors } from "src/libs/LibErrors.sol";
 
 contract DummyDexAdapterTest is Test {
     DummyDexAdapter public adapter;
@@ -354,7 +355,12 @@ contract DummyDexAdapterTest is Test {
 
     function test_GetQuote_WethToUsdc_ReturnsCorrectAmount() public {
         uint256 amountIn = 1 ether;
-        uint256 quoteAmount = adapter.getQuote(address(weth), amountIn, "");
+
+        (bool success, bytes memory result) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), amountIn, "")
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
         assertEq(quoteAmount, expectedOut);
@@ -362,7 +368,12 @@ contract DummyDexAdapterTest is Test {
 
     function test_GetQuote_NativeToUsdc_ReturnsCorrectAmount() public {
         uint256 amountIn = 1 ether;
-        uint256 quoteAmount = adapter.getQuote(address(0), amountIn, "");
+        vm.deal(address(this), amountIn);
+        (bool success, bytes memory result) = address(adapter).call{value: amountIn}(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(0), amountIn, "")
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
         assertEq(quoteAmount, expectedOut);
@@ -371,8 +382,12 @@ contract DummyDexAdapterTest is Test {
     function test_GetQuote_NativeToUsdc_WithMsgValue_ReturnsCorrectAmount() public {
         uint256 amountIn = 1 ether;
 
-        vm.prank(user);
-        uint256 quoteAmount = adapter.getQuote{ value: amountIn }(address(0), 0, "");
+        vm.deal(address(this), amountIn);
+        (bool success, bytes memory result) = address(adapter).call{value: amountIn}(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(0), amountIn, "")
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
         assertEq(quoteAmount, expectedOut);
@@ -380,7 +395,11 @@ contract DummyDexAdapterTest is Test {
 
     function test_GetQuote_NativeToUsdc_UsesAmountInWhenNoMsgValue() public {
         uint256 amountIn = 1 ether;
-        uint256 quoteAmount = adapter.getQuote(address(0), amountIn, "");
+        (bool success, bytes memory result) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(0), amountIn, "")
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
         assertEq(quoteAmount, expectedOut);
@@ -388,7 +407,12 @@ contract DummyDexAdapterTest is Test {
 
     function test_GetQuote_UsdcToWeth_ReturnsCorrectAmount() public {
         uint256 amountIn = 1000e6;
-        uint256 quoteAmount = adapter.getQuote(address(usdc), amountIn, "");
+
+        (bool success, bytes memory result) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(usdc), amountIn, "")
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * INITIAL_WETH_LIQUIDITY) / (INITIAL_USDC_LIQUIDITY + amountIn);
         assertEq(quoteAmount, expectedOut);
@@ -398,7 +422,10 @@ contract DummyDexAdapterTest is Test {
         uint256 reserveWethBefore = adapter.reserveWETH();
         uint256 reserveUsdcBefore = adapter.reserveUSDC();
 
-        adapter.getQuote(address(weth), 1 ether, "");
+        (bool success, ) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), 1 ether, "")
+        );
+        require(!success, "call should revert");
 
         assertEq(adapter.reserveWETH(), reserveWethBefore);
         assertEq(adapter.reserveUSDC(), reserveUsdcBefore);
@@ -407,9 +434,23 @@ contract DummyDexAdapterTest is Test {
     function test_GetQuote_MultipleCallsConsistent() public {
         uint256 amountIn = 1 ether;
 
-        uint256 quote1 = adapter.getQuote(address(weth), amountIn, "");
-        uint256 quote2 = adapter.getQuote(address(weth), amountIn, "");
-        uint256 quote3 = adapter.getQuote(address(weth), amountIn, "");
+        (bool success1, bytes memory result1) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), amountIn, "")
+        );
+        require(!success1, "call1 should revert");
+        uint256 quote1 = _extractCalculatedAmountOut(result1);
+
+        (bool success2, bytes memory result2) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), amountIn, "")
+        );
+        require(!success2, "call2 should revert");
+        uint256 quote2 = _extractCalculatedAmountOut(result2);
+
+        (bool success3, bytes memory result3) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), amountIn, "")
+        );
+        require(!success3, "call3 should revert");
+        uint256 quote3 = _extractCalculatedAmountOut(result3);
 
         assertEq(quote1, quote2);
         assertEq(quote2, quote3);
@@ -427,5 +468,45 @@ contract DummyDexAdapterTest is Test {
 
         vm.expectRevert(DummyDexAdapter.InsufficientLiquidity.selector);
         emptyAdapter.getQuote(address(weth), 1 ether, "");
+    }
+
+    function _extractCalculatedAmountOut(bytes memory errorData) internal pure returns (uint256) {
+        require(errorData.length >= 36, "Invalid error data");
+        bytes4 selector;
+        uint256 amount;
+        assembly {
+            selector := mload(add(errorData, 0x20))
+            amount := mload(add(errorData, 0x24))
+        }
+        require(selector == LibErrors.CalculatedAmountOut.selector, "Unexpected error selector");
+        return amount;
+    }
+
+    function test_Swap_WethToUsdc_RequiresApproval() public {
+        uint256 amountIn = 1 ether;
+        uint256 expectedOut = (amountIn * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amountIn);
+
+        vm.startPrank(user);
+        weth.approve(address(adapter), amountIn);
+        uint256 amountOut = adapter.swap(address(weth), amountIn, 0, "");
+        vm.stopPrank();
+
+        assertEq(amountOut, expectedOut);
+        assertEq(usdc.balanceOf(user), 100_000e6 + expectedOut);
+        assertEq(weth.balanceOf(user), 100 ether - amountIn);
+    }
+
+    function test_Swap_UsdcToWeth_RequiresApproval() public {
+        uint256 amountIn = 2000e6;
+        uint256 expectedOut = (amountIn * INITIAL_WETH_LIQUIDITY) / (INITIAL_USDC_LIQUIDITY + amountIn);
+
+        vm.startPrank(user);
+        usdc.approve(address(adapter), amountIn);
+        uint256 amountOut = adapter.swap(address(usdc), amountIn, 0, "");
+        vm.stopPrank();
+
+        assertEq(amountOut, expectedOut);
+        assertEq(weth.balanceOf(user), 100 ether + expectedOut);
+        assertEq(usdc.balanceOf(user), 100_000e6 - amountIn);
     }
 }

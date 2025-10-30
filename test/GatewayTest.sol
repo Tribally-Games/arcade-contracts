@@ -21,7 +21,7 @@ interface IGatewayFacet {
     uint256 _minUsdcAmount,
     bytes calldata _swapData
   ) external payable;
-  function calculateUsdc(address _token, uint256 _amount, bytes calldata _swapData) external returns (uint256);
+  function calculateUsdc(address _token, uint256 _amount, bytes calldata _swapData) external payable returns (uint256);
   function withdraw(address _user, uint _amount, AuthSignature calldata _sig) external;
 }
 
@@ -236,14 +236,113 @@ contract GatewayTest is TestBaseContract {
 
   function test_CalculateUsdc_UsdcDirect_ReturnsAmount() public {
     uint256 amount = 1000e6;
-    uint256 usdcOut = gatewayFacet.calculateUsdc(address(usdcToken), amount, "");
+    (bool success, bytes memory result) = address(gatewayFacet).call(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(usdcToken), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 usdcOut = _extractCalculatedAmountOut(result);
     assertEq(usdcOut, amount);
   }
 
   function test_CalculateUsdc_NativeToken_ReturnsQuote() public {
     uint256 amount = 1 ether;
-    uint256 usdcOut = gatewayFacet.calculateUsdc(address(0), amount, "");
+    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+
+    vm.deal(address(this), amount);
+    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 usdcOut = _extractCalculatedAmountOut(result);
+
     assertGt(usdcOut, 0);
+    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
+  }
+
+  function test_CalculateUsdc_NativeToken_WithoutMsgValue_UsesFallback() public {
+    uint256 amount = 1 ether;
+    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+
+    (bool success, bytes memory result) = address(gatewayFacet).call(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 usdcOut = _extractCalculatedAmountOut(result);
+
+    assertGt(usdcOut, 0);
+    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
+  }
+
+  function test_CalculateUsdc_NativeToken_WithSufficientBalance() public {
+    uint256 amount = 1 ether;
+    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+
+    vm.deal(address(this), amount);
+    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 usdcOut = _extractCalculatedAmountOut(result);
+
+    assertGt(usdcOut, 0);
+    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
+  }
+
+  function test_CalculateUsdc_Weth_ReturnsQuote() public {
+    uint256 amount = 1 ether;
+    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+
+    weth.approve(address(gatewayFacet), amount);
+
+    (bool success, bytes memory result) = address(gatewayFacet).call(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(weth), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 usdcOut = _extractCalculatedAmountOut(result);
+
+    assertGt(usdcOut, 0);
+    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
+  }
+
+  function test_CalculateUsdc_NativeToken_DifferentAmounts() public {
+    uint256[] memory amounts = new uint256[](3);
+    amounts[0] = 0.1 ether;
+    amounts[1] = 5 ether;
+    amounts[2] = 10 ether;
+
+    for (uint i = 0; i < amounts.length; i++) {
+      uint256 amount = amounts[i];
+      uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+
+      vm.deal(address(this), amount);
+      (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
+        abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+      );
+      require(!success, "call should revert");
+      uint256 usdcOut = _extractCalculatedAmountOut(result);
+
+      assertGt(usdcOut, 0, "Quote should be greater than 0");
+      assertApproxEqAbs(usdcOut, expectedUsdc, 1, "Quote should match expected USDC amount");
+    }
+  }
+
+  function test_CalculateUsdc_ConsistentWithDeposit() public {
+    uint256 amount = 1 ether;
+
+    vm.deal(address(this), amount);
+    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+    );
+    require(!success, "call should revert");
+    uint256 quoteAmount = _extractCalculatedAmountOut(result);
+
+    vm.deal(account1, amount);
+    vm.prank(account1);
+    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, 0, "");
+
+    uint256 actualDeposited = gatewayFacet.gatewayPoolBalance();
+
+    assertApproxEqAbs(quoteAmount, actualDeposited, 1, "Quote should match actual deposit amount");
   }
 
 
@@ -416,6 +515,28 @@ contract GatewayTest is TestBaseContract {
     vm.stopPrank();
   }
 
+  function test_CalculateUsdc_RevertsWithInvalidSwapAdapter_WhenAdapterDoesNotRevert() public {
+    BadSwapAdapter badAdapter = new BadSwapAdapter();
+
+    vm.prank(owner);
+    configFacet.updateSwapAdapter(address(badAdapter));
+
+    uint256 amount = 1 ether;
+
+    vm.deal(address(this), amount);
+    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
+      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
+    );
+    require(!success, "call should revert");
+
+    bytes4 selector;
+    assembly {
+      selector := mload(add(result, 0x20))
+    }
+
+    assertEq(selector, LibErrors.InvalidSwapAdapter.selector, "Should revert with InvalidSwapAdapter");
+  }
+
   function _setupDeposit() internal {
     vm.startPrank(account1);
     usdcToken.approve(diamond, 100);
@@ -425,6 +546,18 @@ contract GatewayTest is TestBaseContract {
     assertEq(usdcToken.balanceOf(account1), 100_000e6 - 100);
     assertEq(usdcToken.balanceOf(diamond), 100);
     assertEq(gatewayFacet.gatewayPoolBalance(), 100);
+  }
+
+  function _extractCalculatedAmountOut(bytes memory errorData) internal pure returns (uint256) {
+    require(errorData.length >= 36, "Invalid error data");
+    bytes4 selector;
+    uint256 amount;
+    assembly {
+      selector := mload(add(errorData, 0x20))
+      amount := mload(add(errorData, 0x24))
+    }
+    require(selector == LibErrors.CalculatedAmountOut.selector, "Unexpected error selector");
+    return amount;
   }
 }
 
@@ -448,7 +581,10 @@ contract MaliciousSwapAdapter {
     bytes calldata
   ) external payable returns (uint256 amountOut) {
     if (tokenIn != address(0)) {
-      IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+      uint256 existingBalance = IERC20(tokenIn).balanceOf(address(this));
+      if (existingBalance < amountIn) {
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn - existingBalance);
+      }
     }
 
     amountOut = 1000e6;
@@ -457,7 +593,7 @@ contract MaliciousSwapAdapter {
     return amountOut;
   }
 
-  function getQuote(address, uint256, bytes calldata) external pure returns (uint256) {
+  function getQuote(address, address, uint256, bytes calldata) external pure returns (uint256) {
     return 1000e6;
   }
 }
@@ -489,7 +625,16 @@ contract InsufficientOutputSwapAdapter {
     return amountOut;
   }
 
-  function getQuote(address, uint256, bytes calldata) external pure returns (uint256) {
+  function getQuote(address, address, uint256, bytes calldata) external pure returns (uint256) {
     return 500e6;
+  }
+}
+
+contract BadSwapAdapter {
+  function getQuote(address, uint256, bytes calldata) external payable {
+  }
+
+  function swap(address, uint256, uint256, bytes calldata) external payable returns (uint256) {
+    return 1000e6;
   }
 }

@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const SALT = "0xf02ac9c61a8577f3e439a5639f65f9eca367e2c6de7086f3b4076c0a895d1948"
+const SALT = "0xf12ac9c61a8571f3e439a5639165f9fca367e2f6de7086f2b4076c0a895d1949"
 
 module.exports = {
   version: 2,
@@ -135,7 +135,7 @@ module.exports = {
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
         "0x000000000000000000000000000000000000dead",
-        "0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425"
+        "0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816"
       ],
       create3Salt: SALT,
       upgrades: {
@@ -149,7 +149,7 @@ module.exports = {
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
         "0x000000000000000000000000000000000000dead",
-        "0xFBA9459F3c1D96E25eB10D7B5e60eD1faD5Fd425"
+        "0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816"
       ],
       create3Salt: SALT,
       upgrades: {

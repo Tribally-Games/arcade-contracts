@@ -3,7 +3,7 @@
 import { getContract, encodeFunctionData, decodeAbiParameters } from 'viem';
 import { Command } from 'commander';
 import { createClients } from './utils';
-import { DIAMOND_ABI, getTokenConfig, formatTokenAmount, isNativeToken, buildSwapPath } from './gateway-utils';
+import { DIAMOND_ABI, getTokenConfig, formatTokenAmount, isNativeToken, buildSwapPath, parseCalculatedAmountOut } from './gateway-utils';
 import IERC20Artifact from '../out/IERC20.sol/IERC20.json';
 import IERC20MetadataArtifact from '../out/IERC20Metadata.sol/IERC20Metadata.json';
 
@@ -110,54 +110,53 @@ async function main() {
     throw new Error(`Insufficient balance. Have: ${formatTokenAmount(balance, tokenDecimals, tokenSymbol)}, Need: ${formatTokenAmount(amount, tokenDecimals, tokenSymbol)}`);
   }
 
+  if (isNative) {
+    console.log(`2. Skipping approval (native token)...\n`);
+  } else if (tokenAddress === usdcAddress) {
+    console.log(`2. Skipping approval (USDC direct deposit)...\n`);
+  } else {
+    const token = getContract({
+      address: tokenAddress,
+      abi: ERC20_ABI,
+      client: { public: publicClient, wallet: walletClient },
+    });
+
+    console.log(`2. Approving Gateway to spend ${formatTokenAmount(amount, tokenDecimals, tokenSymbol)}...`);
+    const allowance = await token.read.allowance([userAddress, diamondAddress]);
+
+    if (allowance < amount) {
+      const approveTx = await token.write.approve([diamondAddress, amount]);
+      console.log(`   Tx: ${approveTx}`);
+      await publicClient.waitForTransactionReceipt({ hash: approveTx });
+      console.log('   ✅ Approved\n');
+    } else {
+      console.log('   ✅ Already approved\n');
+    }
+  }
+
   let usdcReceived: bigint;
   let gasUsed: bigint | undefined;
 
   if (isQuoteMode) {
-    console.log('2. Simulating deposit to get quote...');
+    console.log(`3. Getting quote${!isNative && tokenAddress !== usdcAddress ? ' (approval required for simulation)' : ''}...`);
 
-    const { data } = await publicClient.call({
-      account: userAddress,
-      to: diamondAddress,
-      value: isNative ? amount : undefined,
-      data: encodeFunctionData({
-        abi: DIAMOND_ABI,
-        functionName: 'calculateUsdc',
-        args: [tokenAddress, amount, swapPath],
-      }),
-    });
-
-    if (!data) {
-      throw new Error('Quote simulation failed - no data returned');
-    }
-
-    usdcReceived = BigInt(data);
-    console.log('   ✅ Quote received\n');
-  } else {
-    if (isNative) {
-      console.log(`2. Skipping approval (native token)...\n`);
-    } else if (tokenAddress === usdcAddress) {
-      console.log(`2. Skipping approval (USDC direct deposit)...\n`);
-    } else {
-      const token = getContract({
-        address: tokenAddress,
-        abi: ERC20_ABI,
-        client: { public: publicClient, wallet: walletClient },
+    try {
+      await publicClient.call({
+        account: userAddress,
+        to: diamondAddress,
+        value: isNative ? amount : undefined,
+        data: encodeFunctionData({
+          abi: DIAMOND_ABI,
+          functionName: 'calculateUsdc',
+          args: [tokenAddress, amount, swapPath],
+        }),
       });
-
-      console.log(`2. Approving Gateway to spend ${formatTokenAmount(amount, tokenDecimals, tokenSymbol)}...`);
-      const allowance = await token.read.allowance([userAddress, diamondAddress]);
-
-      if (allowance < amount) {
-        const approveTx = await token.write.approve([diamondAddress, amount]);
-        console.log(`   Tx: ${approveTx}`);
-        await publicClient.waitForTransactionReceipt({ hash: approveTx });
-        console.log('   ✅ Approved\n');
-      } else {
-        console.log('   ✅ Already approved\n');
-      }
+      throw new Error('Quote simulation did not revert as expected');
+    } catch (error: any) {
+      usdcReceived = parseCalculatedAmountOut(error);
+      console.log('   ✅ Quote received\n');
     }
-
+  } else {
     console.log('3. Executing deposit...');
     const depositTx = await gateway.write.deposit(
       [userAddress, tokenAddress, amount, minUsdcOut, swapPath],

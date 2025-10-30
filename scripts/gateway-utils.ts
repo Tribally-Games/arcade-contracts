@@ -1,4 +1,4 @@
-import { encodePacked } from 'viem';
+import { encodePacked, keccak256, toHex } from 'viem';
 import DIAMOND_ABI from '../src/generated/abi.json';
 import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
 
@@ -182,4 +182,43 @@ export function parseTokenAmount(amount: string, decimals: number): bigint {
 
 export function isNativeToken(address: string): boolean {
   return address === '0x0000000000000000000000000000000000000000' || address === '0x0';
+}
+
+function extractErrorData(error: any): `0x${string}` | null {
+  if (error.data) {
+    return error.data as `0x${string}`;
+  }
+
+  if (error.cause) {
+    return extractErrorData(error.cause);
+  }
+
+  return null;
+}
+
+export function parseCalculatedAmountOut(error: any): bigint {
+  const errorData = extractErrorData(error);
+
+  if (!errorData) {
+    throw new Error(`Failed to extract error data from revert: ${error.message}`);
+  }
+
+  if (errorData.length < 10) {
+    throw new Error('Invalid error data: too short to contain error selector');
+  }
+
+  const selector = errorData.slice(0, 10);
+  const expectedSelector = keccak256(toHex('CalculatedAmountOut(uint256)')).slice(0, 10);
+
+  if (selector !== expectedSelector) {
+    throw new Error(
+      `Unexpected revert selector.\n` +
+      `Expected: ${expectedSelector} (CalculatedAmountOut)\n` +
+      `Received: ${selector}\n` +
+      `Error: ${error.message}`
+    );
+  }
+
+  const amountHex = '0x' + errorData.slice(10);
+  return BigInt(amountHex);
 }

@@ -51,14 +51,13 @@ contract MockUniversalRouter {
                 (address recipient, uint256 amountIn, uint256 amountOutMinimum, , ) =
                     abi.decode(inputs[i], (address, uint256, uint256, bytes, bool));
 
-                uint256 wethBalance = IERC20(weth).balanceOf(address(this));
-                if (wethBalance > 0) {
-                    uint256 amountOut = (amountIn * EXCHANGE_RATE) / 1e12;
+                require(IERC20(weth).balanceOf(address(this)) >= amountIn, "Insufficient WETH balance in router");
 
-                    require(amountOut >= amountOutMinimum, "Insufficient output amount");
+                uint256 amountOut = (amountIn * EXCHANGE_RATE) / 1e12;
 
-                    IERC20(usdc).transfer(recipient, amountOut);
-                }
+                require(amountOut >= amountOutMinimum, "Insufficient output amount");
+
+                IERC20(usdc).transfer(recipient, amountOut);
             }
         }
     }

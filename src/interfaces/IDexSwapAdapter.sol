@@ -3,16 +3,15 @@ pragma solidity ^0.8.24;
 
 interface IDexSwapAdapter {
     /// @notice Get quote for swapping tokens
-    /// @dev Returns expected output amount. May execute swap for adapters without quote mechanism.
+    /// @dev Reverts with CalculatedAmountOut(uint256) containing the expected output amount.
     /// @param tokenIn Input token address (ERC20 tokens only, address(0) for native token)
     /// @param amountIn Exact input amount
     /// @param path Encoded swap path (format depends on DEX implementation)
-    /// @return amountOut Expected output amount
     function getQuote(
         address tokenIn,
         uint256 amountIn,
         bytes calldata path
-    ) external payable returns (uint256 amountOut);
+    ) external payable;
 
     /// @notice Swap tokens using DEX-specific routing
     /// @param tokenIn Input token address (ERC20 tokens only, address(0) for native token)

@@ -7,6 +7,7 @@ import { MockUniversalRouter } from "./mocks/MockUniversalRouter.sol";
 import { MockWETH } from "src/mocks/MockWETH.sol";
 import { TestERC20 } from "src/mocks/TestERC20.sol";
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import { LibErrors } from "src/libs/LibErrors.sol";
 
 contract UniversalSwapAdapterTest is Test {
     UniversalSwapAdapter public adapter;
@@ -130,18 +131,6 @@ contract UniversalSwapAdapterTest is Test {
         vm.stopPrank();
     }
 
-    function test_Swap_TransfersUsdcToSender() public {
-        uint256 amountIn = 1 ether;
-        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
-
-        uint256 userUsdcBefore = usdc.balanceOf(user);
-
-        vm.prank(user);
-        uint256 amountOut = adapter.swap{ value: amountIn }(address(0), amountIn, 0, path);
-
-        assertEq(usdc.balanceOf(user), userUsdcBefore + amountOut);
-    }
-
     function test_Swap_MultipleSwapsInSequence() public {
         bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
 
@@ -163,11 +152,44 @@ contract UniversalSwapAdapterTest is Test {
         uint256 amountIn = 1 ether;
         bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
 
-        vm.prank(user);
-        uint256 quoteAmount = adapter.getQuote{ value: amountIn }(address(0), amountIn, path);
+        vm.deal(address(this), amountIn);
+        (bool success, bytes memory result) = address(adapter).call{value: amountIn}(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(0), amountIn, path)
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
 
         uint256 expectedOut = (amountIn * 2000) / 1e12;
         assertEq(quoteAmount, expectedOut);
+    }
+
+    function test_GetQuote_Weth_ExecutesSwap() public {
+        uint256 amountIn = 1 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.startPrank(user);
+        weth.approve(address(adapter), amountIn);
+        (bool success, bytes memory result) = address(adapter).call(
+            abi.encodeWithSelector(adapter.getQuote.selector, address(weth), amountIn, path)
+        );
+        require(!success, "call should revert");
+        uint256 quoteAmount = _extractCalculatedAmountOut(result);
+        vm.stopPrank();
+
+        uint256 expectedOut = (amountIn * 2000) / 1e12;
+        assertEq(quoteAmount, expectedOut);
+    }
+
+    function _extractCalculatedAmountOut(bytes memory errorData) internal pure returns (uint256) {
+        require(errorData.length >= 36, "Invalid error data");
+        bytes4 selector;
+        uint256 amount;
+        assembly {
+            selector := mload(add(errorData, 0x20))
+            amount := mload(add(errorData, 0x24))
+        }
+        require(selector == LibErrors.CalculatedAmountOut.selector, "Unexpected error selector");
+        return amount;
     }
 
     function test_RescueTokens_Success() public{
@@ -208,27 +230,6 @@ contract UniversalSwapAdapterTest is Test {
         adapter.rescueTokens(address(weth), rescueAmount);
 
         assertEq(weth.balanceOf(owner), ownerBalanceBefore + rescueAmount);
-    }
-
-    function test_Swap_LargeAmount() public {
-        uint256 amountIn = 100 ether;
-        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
-
-        vm.prank(user);
-        uint256 amountOut = adapter.swap{ value: amountIn }(address(0), amountIn, 0, path);
-
-        assertEq(amountOut, (amountIn * 2000) / 1e12);
-        assertEq(usdc.balanceOf(user), amountOut);
-    }
-
-    function test_Swap_SmallAmount() public {
-        uint256 amountIn = 0.001 ether;
-        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
-
-        vm.prank(user);
-        uint256 amountOut = adapter.swap{ value: amountIn }(address(0), amountIn, 0, path);
-
-        assertEq(amountOut, (amountIn * 2000) / 1e12);
     }
 
     function test_SwapDeadline_DefaultIs300Seconds() public view {

@@ -4,9 +4,9 @@ import { Command } from 'commander';
 import { createClients, getVerificationConfig } from './utils';
 import { DEX_ROUTERS, TOKEN_CONFIGS } from './gateway-utils';
 import { type Hex } from 'viem';
-import { deployWithCreate3, type DeployResult } from './create3-deploy';
+import { deployWithCreate3, type DeployResult, verifyContract } from './create3-deploy';
 
-const CREATE3_SALT = '0x4445585a41444150544552000000000000000000000000000000000000013aff' as Hex;
+const CREATE3_SALT = '0x4445585a21442151541152000000010000010000110000000010000200013aff' as Hex;
 
 export async function deployAdapter(
   network: string,
@@ -89,6 +89,7 @@ async function main() {
     .option('--router <address>', 'DEX router address (optional, uses defaults)')
     .option('--usdc <address>', 'USDC token address (optional, uses defaults, for dummy adapter only)')
     .option('--weth <address>', 'WETH token address (optional, uses defaults, for dummy adapter only)')
+    .option('--skip-verification', 'Skip contract verification on block explorer')
     .parse();
 
   const [network] = program.args;
@@ -127,8 +128,32 @@ async function main() {
 
   console.log('🚀 Deploying adapter with CREATE3...\n');
 
-  const result = await deployAdapter(network, options);
+  // Store contract config for verification step
+  let contractName: string;
+  let contractPath: string;
+  let constructorArgs: any[];
+  let constructorTypes: string[];
 
+  if (adapterType === 'dummy') {
+    const wethAddress = options.weth || TOKEN_CONFIGS[network]?.weth?.address;
+    const usdcAddress = options.usdc || TOKEN_CONFIGS[network]?.usdc?.address;
+    contractName = 'DummyDexAdapter';
+    contractPath = 'DummyDexAdapter.sol';
+    constructorArgs = [wethAddress, usdcAddress, ownerAddress];
+    constructorTypes = ['address', 'address', 'address'];
+  } else {
+    const routerAddress = options.router ||
+      (network === 'base' ? DEX_ROUTERS[network]?.uniswap : DEX_ROUTERS[network]?.katana);
+    contractName = 'UniversalSwapAdapter';
+    contractPath = `${contractName}.sol`;
+    constructorArgs = [routerAddress, ownerAddress];
+    constructorTypes = ['address', 'address'];
+  }
+
+  // Deploy without verification
+  const result = await deployAdapter(network, { ...options, skipVerification: true });
+
+  // Display deployment result immediately
   if (result.alreadyDeployed) {
     console.log('╔════════════════════════════════════════╗');
     console.log('║      Already Deployed                  ║');
@@ -147,10 +172,25 @@ async function main() {
     console.log('\n✅ Adapter deployed successfully!');
   }
 
-  if (result.verified) {
-    console.log('✅ Contract verified on block explorer!');
-  } else if (result.verificationError) {
-    console.log(`⚠️  Verification failed: ${result.verificationError}`);
+  // Verify separately if not skipped
+  if (!options.skipVerification) {
+    const verificationConfig = getVerificationConfig(network);
+    if (verificationConfig) {
+      const verifyResult = await verifyContract(
+        result.address,
+        contractName,
+        contractPath,
+        constructorArgs,
+        constructorTypes,
+        verificationConfig
+      );
+
+      if (verifyResult.success) {
+        console.log('✅ Contract verified on block explorer!');
+      } else if (verifyResult.error) {
+        console.log(`⚠️  Verification failed: ${verifyResult.error}`);
+      }
+    }
   }
 }
 
