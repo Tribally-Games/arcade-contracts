@@ -10,6 +10,108 @@ import { join } from 'path';
 const DEPOSITOR_SALT = '0x4445585f4445504f5349544f5200000000000000000000000000000000013aff' as Hex;
 const DEPLOYMENTS_FILE = join(process.cwd(), 'gemforge.deployments.json');
 
+const WETH_LIQUIDITY_AMOUNT = 100n * 10n ** 18n;
+const USDC_LIQUIDITY_AMOUNT = 100n * 10n ** 6n;
+
+async function addLiquidityToDummyDepositor(
+  clients: ReturnType<typeof createClients>,
+  depositorAddress: Hex,
+  wethAddress: Hex,
+  usdcAddress: Hex,
+  network: string
+) {
+  console.log('\n💧 Adding initial liquidity to DummyDexDepositor...');
+
+  const erc20Artifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'out/TestERC20.sol/TestERC20.json'), 'utf-8')
+  );
+  const wethArtifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'out/MockWETH.sol/MockWETH.json'), 'utf-8')
+  );
+  const depositorArtifact = JSON.parse(
+    readFileSync(join(process.cwd(), 'out/DummyDexDepositor.sol/DummyDexDepositor.json'), 'utf-8')
+  );
+
+  const reserveWETH = await clients.publicClient.readContract({
+    address: depositorAddress,
+    abi: depositorArtifact.abi,
+    functionName: 'reserveWETH',
+  }) as bigint;
+
+  const reserveUSDC = await clients.publicClient.readContract({
+    address: depositorAddress,
+    abi: depositorArtifact.abi,
+    functionName: 'reserveUSDC',
+  }) as bigint;
+
+  if (reserveWETH > 0n || reserveUSDC > 0n) {
+    console.log(`Liquidity already exists (WETH: ${reserveWETH}, USDC: ${reserveUSDC})`);
+    console.log('Skipping liquidity addition.');
+    return;
+  }
+
+  const wethBalance = await clients.publicClient.readContract({
+    address: wethAddress,
+    abi: wethArtifact.abi,
+    functionName: 'balanceOf',
+    args: [clients.account.address],
+  }) as bigint;
+
+  const usdcBalance = await clients.publicClient.readContract({
+    address: usdcAddress,
+    abi: erc20Artifact.abi,
+    functionName: 'balanceOf',
+    args: [clients.account.address],
+  }) as bigint;
+
+  console.log(`WETH balance: ${wethBalance} (need ${WETH_LIQUIDITY_AMOUNT})`);
+  console.log(`USDC balance: ${usdcBalance} (need ${USDC_LIQUIDITY_AMOUNT})`);
+
+  if (wethBalance < WETH_LIQUIDITY_AMOUNT) {
+    console.warn(`⚠️  Insufficient WETH balance. Skipping liquidity addition.`);
+    return;
+  }
+
+  if (usdcBalance < USDC_LIQUIDITY_AMOUNT) {
+    console.warn(`⚠️  Insufficient USDC balance. Skipping liquidity addition.`);
+    return;
+  }
+
+  console.log(`Approving WETH...`);
+  const approveWethHash = await clients.walletClient.writeContract({
+    address: wethAddress,
+    abi: wethArtifact.abi,
+    functionName: 'approve',
+    args: [depositorAddress, WETH_LIQUIDITY_AMOUNT],
+    account: clients.account,
+  });
+  await clients.publicClient.waitForTransactionReceipt({ hash: approveWethHash });
+  console.log('✓ WETH approved');
+
+  console.log(`Approving USDC...`);
+  const approveUsdcHash = await clients.walletClient.writeContract({
+    address: usdcAddress,
+    abi: erc20Artifact.abi,
+    functionName: 'approve',
+    args: [depositorAddress, USDC_LIQUIDITY_AMOUNT],
+    account: clients.account,
+  });
+  await clients.publicClient.waitForTransactionReceipt({ hash: approveUsdcHash });
+  console.log('✓ USDC approved');
+
+  console.log(`Adding liquidity (100 WETH + 100 USDC)...`);
+  const addLiquidityHash = await clients.walletClient.writeContract({
+    address: depositorAddress,
+    abi: depositorArtifact.abi,
+    functionName: 'addLiquidity',
+    args: [WETH_LIQUIDITY_AMOUNT, USDC_LIQUIDITY_AMOUNT],
+    account: clients.account,
+  });
+  await clients.publicClient.waitForTransactionReceipt({ hash: addLiquidityHash });
+  console.log('✓ Liquidity added successfully');
+  console.log('  Initial price: 1 WETH = 1 USDC');
+}
+
 async function main() {
   const target = process.env.GEMFORGE_DEPLOY_TARGET;
 
@@ -143,6 +245,26 @@ async function main() {
 
   writeFileSync(DEPLOYMENTS_FILE, JSON.stringify(deployments, null, 2));
   console.log(`\nUpdated ${DEPLOYMENTS_FILE} with ${contractName} deployment`);
+
+  if (depositorType === 'dummy') {
+    const wethAddress = TOKEN_CONFIGS[network]?.weth?.address;
+    const usdcAddress = TOKEN_CONFIGS[network]?.usdc?.address;
+
+    if (wethAddress && usdcAddress) {
+      try {
+        await addLiquidityToDummyDepositor(
+          clients,
+          result.address as Hex,
+          wethAddress as Hex,
+          usdcAddress as Hex,
+          network
+        );
+      } catch (error) {
+        console.error('Failed to add liquidity:', error);
+        console.log('Continuing despite liquidity addition failure...');
+      }
+    }
+  }
 }
 
 main()
