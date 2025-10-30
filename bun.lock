@@ -14,7 +14,7 @@
         "commitizen": "^4.3.1",
         "cz-conventional-changelog": "^3.3.0",
         "dotenv": "^16.3.1",
-        "gemforge": "^2.17.0",
+        "gemforge": "^2.18.0",
         "husky": "^8.0.2",
         "prettier": "^2.8.8",
         "shelljs": "^0.8.5",
@@ -698,7 +698,7 @@
 
     "function-bind": ["function-bind@1.1.2", "", {}, "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA=="],
 
-    "gemforge": ["gemforge@2.17.0", "", { "dependencies": { "@solidity-parser/parser": "^0.16.1", "bigval": "^1.7.0", "chalk": "^5.3.0", "commander": "^11.0.0", "ethers": "^6.7.1", "execa": "^7.2.0", "glob": "^10.3.3", "lodash.get": "^4.4.2", "semver": "^7.5.4", "spdx-license-ids": "^3.0.13", "tmp": "^0.2.1" }, "bin": { "gemforge": "bin/gemforge.js" } }, "sha512-YOV9LsELO0Aq+8KbmRLCsC7/00FuvpXO2jcIdEBIUA9X6deeXWZ2wfzL1qgd5E+wfVUhu8vuQXgECPDjk+FBcg=="],
+    "gemforge": ["gemforge@2.18.0", "", { "dependencies": { "@solidity-parser/parser": "^0.16.1", "bigval": "^1.7.0", "chalk": "^5.3.0", "commander": "^11.0.0", "ethers": "^6.7.1", "execa": "^7.2.0", "glob": "^10.3.3", "lodash.get": "^4.4.2", "semver": "^7.5.4", "spdx-license-ids": "^3.0.13", "tmp": "^0.2.1" }, "bin": { "gemforge": "bin/gemforge.js" } }, "sha512-zWebJeBt5OX6Mci7VR5c1Pkx7DDLq6YULCkbNuQZYcLLgWkW8JvfB3GPkt3pG3nHoNtaYiEtNlFNUe3Lz6MvsQ=="],
 
     "generator-function": ["generator-function@2.0.1", "", {}, "sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g=="],
 
