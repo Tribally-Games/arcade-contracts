@@ -1,6 +1,6 @@
 {
   "name": "@tribally.games/arcade-contracts",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Tribally Arcade smart contracts.",
   "license": "AGPL-3.0-only",
   "main": "index.js",
