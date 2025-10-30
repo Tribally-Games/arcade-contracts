@@ -4,7 +4,8 @@ pragma solidity ^0.8.24;
 import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
+import { IDexDepositor } from "../interfaces/IDexDepositor.sol";
+import { IGatewayFacet } from "../interfaces/IGatewayFacet.sol";
 import { LibErrors } from "../libs/LibErrors.sol";
 
 interface IWETH {
@@ -14,10 +15,11 @@ interface IWETH {
     function transfer(address, uint256) external returns (bool);
 }
 
-contract DummyDexAdapter is IDexSwapAdapter, Ownable {
+contract DummyDexDepositor is IDexDepositor, Ownable {
     using SafeERC20 for IERC20;
 
     address public immutable wrappedNativeToken;
+    address public immutable diamondProxy;
     address public immutable usdcToken;
 
     uint256 public reserveWETH;
@@ -33,15 +35,19 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
     error InvalidToken();
     error InvalidAmount();
 
-    constructor(address _wrappedNativeToken, address _usdcToken, address _owner) {
-        if (_wrappedNativeToken == address(0) || _usdcToken == address(0)) {
-            revert InvalidAddress();
-        }
-        if (_owner == address(0)) {
-            revert InvalidAddress();
-        }
+    constructor(
+        address _wrappedNativeToken,
+        address _diamondProxy,
+        address _usdcToken,
+        address _owner
+    ) {
+        if (_wrappedNativeToken == address(0)) revert InvalidAddress();
+        if (_diamondProxy == address(0)) revert InvalidAddress();
+        if (_usdcToken == address(0)) revert InvalidAddress();
+        if (_owner == address(0)) revert InvalidAddress();
 
         wrappedNativeToken = _wrappedNativeToken;
+        diamondProxy = _diamondProxy;
         usdcToken = _usdcToken;
 
         _transferOwnership(_owner);
@@ -52,84 +58,73 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
         uint256 amountIn,
         bytes calldata
     ) external payable override {
+        if (tokenIn == usdcToken) {
+            revert LibErrors.CalculatedAmountOut(amountIn);
+        }
+
         bool isNative = tokenIn == address(0);
-        bool isWethToUsdc;
 
         if (isNative) {
             amountIn = msg.value > 0 ? msg.value : amountIn;
-            isWethToUsdc = true;
-        } else if (tokenIn == wrappedNativeToken) {
-            isWethToUsdc = true;
-        } else if (tokenIn == usdcToken) {
-            isWethToUsdc = false;
-        } else {
+        } else if (tokenIn != wrappedNativeToken) {
             revert InvalidToken();
         }
 
-        uint256 amountOut;
-        if (isWethToUsdc) {
-            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
-            amountOut = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
-            if (amountOut > reserveUSDC) revert InsufficientLiquidity();
-        } else {
-            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
-            amountOut = (amountIn * reserveWETH) / (reserveUSDC + amountIn);
-            if (amountOut > reserveWETH) revert InsufficientLiquidity();
-        }
+        if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
+        uint256 usdcAmount = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
+        if (usdcAmount > reserveUSDC) revert InsufficientLiquidity();
 
-        revert LibErrors.CalculatedAmountOut(amountOut);
+        revert LibErrors.CalculatedAmountOut(usdcAmount);
     }
 
-    function swap(
+    function deposit(
+        address user,
         address tokenIn,
         uint256 amountIn,
         uint256 amountOutMinimum,
         bytes calldata
-    ) external payable override returns (uint256 amountOut) {
+    ) external payable override returns (uint256 usdcAmount) {
+        if (tokenIn == usdcToken) {
+            IERC20(usdcToken).safeTransferFrom(msg.sender, address(this), amountIn);
+            usdcAmount = amountIn;
+        } else {
+            usdcAmount = _performSwap(tokenIn, amountIn, amountOutMinimum);
+        }
+
+        IERC20(usdcToken).forceApprove(diamondProxy, usdcAmount);
+        IGatewayFacet(diamondProxy).deposit(user, usdcAmount);
+        IERC20(usdcToken).forceApprove(diamondProxy, 0);
+
+        emit Swap(tokenIn, amountIn, usdcAmount);
+        return usdcAmount;
+    }
+
+    function _performSwap(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMinimum
+    ) private returns (uint256 usdcAmount) {
         bool isNative = tokenIn == address(0);
-        bool isWethToUsdc;
 
         if (isNative) {
             IWETH(wrappedNativeToken).deposit{ value: msg.value }();
-            isWethToUsdc = true;
         } else if (tokenIn == wrappedNativeToken) {
             IERC20(wrappedNativeToken).safeTransferFrom(msg.sender, address(this), amountIn);
-            isWethToUsdc = true;
-        } else if (tokenIn == usdcToken) {
-            IERC20(usdcToken).safeTransferFrom(msg.sender, address(this), amountIn);
-            isWethToUsdc = false;
         } else {
             revert InvalidToken();
         }
 
-        if (isWethToUsdc) {
-            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
+        if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
 
-            amountOut = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
+        usdcAmount = (amountIn * reserveUSDC) / (reserveWETH + amountIn);
 
-            if (amountOut < amountOutMinimum) revert InsufficientOutputAmount();
-            if (amountOut > reserveUSDC) revert InsufficientLiquidity();
+        if (usdcAmount < amountOutMinimum) revert InsufficientOutputAmount();
+        if (usdcAmount > reserveUSDC) revert InsufficientLiquidity();
 
-            reserveWETH += amountIn;
-            reserveUSDC -= amountOut;
+        reserveWETH += amountIn;
+        reserveUSDC -= usdcAmount;
 
-            IERC20(usdcToken).safeTransfer(msg.sender, amountOut);
-        } else {
-            if (reserveWETH == 0 || reserveUSDC == 0) revert InsufficientLiquidity();
-
-            amountOut = (amountIn * reserveWETH) / (reserveUSDC + amountIn);
-
-            if (amountOut < amountOutMinimum) revert InsufficientOutputAmount();
-            if (amountOut > reserveWETH) revert InsufficientLiquidity();
-
-            reserveUSDC += amountIn;
-            reserveWETH -= amountOut;
-
-            IERC20(wrappedNativeToken).safeTransfer(msg.sender, amountOut);
-        }
-
-        emit Swap(tokenIn, amountIn, amountOut);
-        return amountOut;
+        return usdcAmount;
     }
 
     function addLiquidity(uint256 wethAmount, uint256 usdcAmount) external onlyOwner {
@@ -163,6 +158,6 @@ contract DummyDexAdapter is IDexSwapAdapter, Ownable {
     }
 
     receive() external payable {
-        revert("Use swap() for native token swaps");
+        revert("Use deposit() for native token deposits");
     }
 }

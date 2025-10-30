@@ -1,6 +1,6 @@
 require('dotenv').config()
 
-const SALT = "0xf12ac9c61a8571f3e439a5639165f9fca367e2f6de7086f2b4076c0a895d1949"
+const SALT = "0xf12ac9c61a8571f3e439a5639165f9fca467e2f6de7086f2b4076c0a194d1949"
 
 module.exports = {
   version: 2,
@@ -56,8 +56,8 @@ module.exports = {
   hooks: {
     preBuild: "",
     postBuild: "",
-    preDeploy: "./scripts/predeploy.ts",
-    postDeploy: "",
+    preDeploy: "./scripts/pre-deploy.ts",
+    postDeploy: "./scripts/post-deploy.ts",
   },
   wallets: {
     local_wallet: {
@@ -98,7 +98,6 @@ module.exports = {
       contractVerification: {
         foundry: {
           apiUrl: "https://sourcify.roninchain.com/server/",
-          apiKey: process.env.ETHERSCAN_API_KEY || '',
           chainId: 2020,
           verifier: 'sourcify',
         },
@@ -112,8 +111,7 @@ module.exports = {
       initArgs: [
         "0x7fB0e77f4B958FCdEE59564E4e6526EAB2002141",
         "0x302916C3a7Fe06B120b92d91A07A92180fa18625",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        "0x4cBac2f21c2c8bBeC82612Ed5FAc526DD211e991"
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
       ],
       create3Salt: SALT,
     },
@@ -123,8 +121,7 @@ module.exports = {
       initArgs: [
         "0x7fB0e77f4B958FCdEE59564E4e6526EAB2002141",
         "0x302916C3a7Fe06B120b92d91A07A92180fa18625",
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-        "0x4cBac2f21c2c8bBeC82612Ed5FAc526DD211e991"
+        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
       ],
       create3Salt: SALT,
     },
@@ -134,8 +131,7 @@ module.exports = {
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-        "0x000000000000000000000000000000000000dead",
-        "0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816"
+        "0x000000000000000000000000000000000000dead"
       ],
       create3Salt: SALT,
       upgrades: {
@@ -148,8 +144,7 @@ module.exports = {
       initArgs: [
         "0xe13E40e8FdB815FBc4a1E2133AB5588C33BaC45d",
         "0x0b7007c13325c48911f73a2dad5fa5dcbf808adc",
-        "0x000000000000000000000000000000000000dead",
-        "0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816"
+        "0x000000000000000000000000000000000000dead"
       ],
       create3Salt: SALT,
       upgrades: {

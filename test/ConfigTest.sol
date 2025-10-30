@@ -140,22 +140,7 @@ contract ConfigTest is TestBaseContract {
     IDiamondCut(diamond).diamondCut(
       cuts,
       address(init),
-      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(0x1))
-    );
-  }
-
-  function test_Init_FailsWithInvalidSwapAdapter() public {
-    DiamondCutFacet diamondCutFacet = new DiamondCutFacet();
-    address newDiamond = address(new Diamond(owner, address(diamondCutFacet)));
-
-    InitDiamond init = new InitDiamond();
-    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](0);
-
-    vm.expectRevert(abi.encodeWithSelector(LibErrors.InvalidSwapAdapter.selector));
-    IDiamondCut(newDiamond).diamondCut(
-      cuts,
-      address(init),
-      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(0))
+      abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer)
     );
   }
 }

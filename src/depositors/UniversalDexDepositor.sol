@@ -5,15 +5,18 @@ import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Ownable } from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import { IDexSwapAdapter } from "../interfaces/IDexSwapAdapter.sol";
+import { IDexDepositor } from "../interfaces/IDexDepositor.sol";
 import { IUniversalRouter } from "../interfaces/IUniversalRouter.sol";
+import { IGatewayFacet } from "../interfaces/IGatewayFacet.sol";
 import { Commands } from "lib/katana-operation-contracts/src/aggregate-router/libraries/Commands.sol";
 import { LibErrors } from "../libs/LibErrors.sol";
 
-contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
+contract UniversalDexDepositor is IDexDepositor, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address public immutable universalRouter;
+    address public immutable diamondProxy;
+    address public immutable usdcToken;
 
     address private constant ADDRESS_THIS = address(2);
 
@@ -25,11 +28,20 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
     error InvalidAddress();
     error InvalidDeadline();
 
-    constructor(address _universalRouter, address _owner) {
+    constructor(
+        address _universalRouter,
+        address _diamondProxy,
+        address _usdcToken,
+        address _owner
+    ) {
         if (_universalRouter == address(0)) revert InvalidAddress();
+        if (_diamondProxy == address(0)) revert InvalidAddress();
+        if (_usdcToken == address(0)) revert InvalidAddress();
         if (_owner == address(0)) revert InvalidAddress();
 
         universalRouter = _universalRouter;
+        diamondProxy = _diamondProxy;
+        usdcToken = _usdcToken;
 
         _transferOwnership(_owner);
     }
@@ -39,18 +51,48 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
         uint256 amountIn,
         bytes calldata path
     ) external payable override {
-        uint256 amountOut = swap(tokenIn, amountIn, 0, path);
-        revert LibErrors.CalculatedAmountOut(amountOut);
+        uint256 usdcAmount;
+
+        if (tokenIn == usdcToken) {
+            usdcAmount = amountIn;
+        } else {
+            usdcAmount = _performSwap(tokenIn, amountIn, 0, path);
+        }
+
+        revert LibErrors.CalculatedAmountOut(usdcAmount);
     }
 
-    function swap(
+    function deposit(
+        address user,
         address tokenIn,
         uint256 amountIn,
         uint256 amountOutMinimum,
         bytes calldata path
-    ) public payable override nonReentrant returns (uint256 amountOut) {
-        address tokenOut = _extractOutputToken(path);
-        uint256 balanceBefore = IERC20(tokenOut).balanceOf(address(this));
+    ) external payable override nonReentrant returns (uint256 usdcAmount) {
+        bool isNative = tokenIn == address(0);
+        bool isUsdc = tokenIn == usdcToken;
+
+        if (isUsdc) {
+            IERC20(usdcToken).safeTransferFrom(msg.sender, address(this), amountIn);
+            usdcAmount = amountIn;
+        } else {
+            usdcAmount = _performSwap(tokenIn, amountIn, amountOutMinimum, path);
+        }
+
+        IERC20(usdcToken).forceApprove(diamondProxy, usdcAmount);
+        IGatewayFacet(diamondProxy).deposit(user, usdcAmount);
+        IERC20(usdcToken).forceApprove(diamondProxy, 0);
+
+        return usdcAmount;
+    }
+
+    function _performSwap(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMinimum,
+        bytes calldata path
+    ) private returns (uint256 usdcAmount) {
+        uint256 balanceBefore = IERC20(usdcToken).balanceOf(address(this));
 
         bool isNative = tokenIn == address(0);
 
@@ -93,18 +135,10 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
             IUniversalRouter(universalRouter).execute(commands, inputs, block.timestamp + swapDeadline);
         }
 
-        uint256 balanceAfter = IERC20(tokenOut).balanceOf(address(this));
-        amountOut = balanceAfter - balanceBefore;
+        uint256 balanceAfter = IERC20(usdcToken).balanceOf(address(this));
+        usdcAmount = balanceAfter - balanceBefore;
 
-        IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
-
-        return amountOut;
-    }
-
-    function _extractOutputToken(bytes calldata path) private pure returns (address tokenOut) {
-        assembly {
-            tokenOut := shr(96, calldataload(add(path.offset, sub(path.length, 20))))
-        }
+        return usdcAmount;
     }
 
     function setSwapDeadline(uint256 _deadline) external onlyOwner {
@@ -122,5 +156,9 @@ contract UniversalSwapAdapter is IDexSwapAdapter, Ownable, ReentrancyGuard {
         IERC20(_token).safeTransfer(owner(), _amount);
 
         emit TokensRescued(_token, owner(), _amount);
+    }
+
+    receive() external payable {
+        revert("Use deposit() for native token deposits");
     }
 }

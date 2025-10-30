@@ -190,6 +190,8 @@ export async function verifyContract(
     args.push('--chain', verification.chainId.toString());
   }
 
+  console.log(`  Command: forge ${args.join(' ')}`);
+
   return new Promise((resolve) => {
     const process = spawn('forge', args, {
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -209,12 +211,27 @@ export async function verifyContract(
     process.on('close', (code) => {
       const output = stdout + stderr;
 
-      if (code === 0 || output.includes('already verified')) {
+      console.log('\n📋 Forge Output:');
+      console.log('─'.repeat(80));
+      if (output.trim()) {
+        console.log(output.trim());
+      } else {
+        console.log('(no output)');
+      }
+      console.log('─'.repeat(80));
+
+      const isSuccess =
+        code === 0 ||
+        output.toLowerCase().includes('already verified') ||
+        output.toLowerCase().includes('successfully verified') ||
+        output.toLowerCase().includes('verification successful');
+
+      if (isSuccess) {
         console.log('✅ Contract verified successfully!');
         resolve({ success: true });
       } else {
-        const errorMsg = output || `Verification failed with code ${code}`;
-        console.log(`⚠️  Verification failed: ${errorMsg}`);
+        const errorMsg = output || `Verification failed with exit code ${code}`;
+        console.log(`⚠️  Verification failed (exit code: ${code})`);
         resolve({ success: false, error: errorMsg });
       }
     });

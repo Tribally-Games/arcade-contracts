@@ -16,7 +16,7 @@ import { GatewayFacet } from "src/facets/GatewayFacet.sol";
 import { SigningFacet } from "src/facets/SigningFacet.sol";
 import { ConfigFacet } from "src/facets/ConfigFacet.sol";
 import { InitDiamond } from "src/init/InitDiamond.sol";
-import { DummyDexAdapter } from "src/adapters/DummyDexAdapter.sol";
+import { DummyDexDepositor } from "src/depositors/DummyDexDepositor.sol";
 import { MockWETH } from "src/mocks/MockWETH.sol";
 
 contract MockERC20 is ERC20 {
@@ -57,11 +57,10 @@ abstract contract TestBaseContract is Test {
 
     IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](3);
 
-    bytes4[] memory gatewaySelectors = new bytes4[](4);
+    bytes4[] memory gatewaySelectors = new bytes4[](3);
     gatewaySelectors[0] = GatewayFacet.gatewayPoolBalance.selector;
     gatewaySelectors[1] = GatewayFacet.deposit.selector;
-    gatewaySelectors[2] = GatewayFacet.calculateUsdc.selector;
-    gatewaySelectors[3] = GatewayFacet.withdraw.selector;
+    gatewaySelectors[2] = GatewayFacet.withdraw.selector;
     cuts[0] = IDiamondCut.FacetCut({
       facetAddress: address(gatewayFacet),
       action: IDiamondCut.FacetCutAction.Add,
@@ -76,14 +75,12 @@ abstract contract TestBaseContract is Test {
       functionSelectors: signingSelectors
     });
 
-    bytes4[] memory configSelectors = new bytes4[](7);
+    bytes4[] memory configSelectors = new bytes4[](5);
     configSelectors[0] = ConfigFacet.signer.selector;
     configSelectors[1] = ConfigFacet.setSigner.selector;
     configSelectors[2] = ConfigFacet.govToken.selector;
     configSelectors[3] = ConfigFacet.setGovToken.selector;
     configSelectors[4] = ConfigFacet.usdcToken.selector;
-    configSelectors[5] = ConfigFacet.swapAdapter.selector;
-    configSelectors[6] = ConfigFacet.updateSwapAdapter.selector;
     cuts[2] = IDiamondCut.FacetCut({
       facetAddress: address(configFacet),
       action: IDiamondCut.FacetCutAction.Add,
@@ -94,11 +91,9 @@ abstract contract TestBaseContract is Test {
     usdcToken = new MockERC20();
 
     MockWETH weth = new MockWETH();
-    vm.prank(owner);
-    DummyDexAdapter swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
 
     InitDiamond init = new InitDiamond();
-    IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer, address(swapAdapter)));
+    IDiamondCut(diamond).diamondCut(cuts, address(init), abi.encodeWithSelector(init.init.selector, address(govToken), address(usdcToken), signer));
   }
 
   function _computeDefaultSig(bytes memory _data, uint _deadline) internal view returns (AuthSignature memory) {

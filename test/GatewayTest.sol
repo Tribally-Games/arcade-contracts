@@ -5,23 +5,11 @@ import "forge-std/Test.sol";
 import { TestBaseContract, MockERC20 } from "./utils/TestBaseContract.sol";
 import { LibErrors } from "src/libs/LibErrors.sol";
 import { AuthSignature } from "src/shared/Structs.sol";
-import { DummyDexAdapter } from "src/adapters/DummyDexAdapter.sol";
-import { MockWETH } from "src/mocks/MockWETH.sol";
-import { IDiamondCut } from "lib/diamond-2-hardhat/contracts/interfaces/IDiamondCut.sol";
 import { ConfigFacet } from "src/facets/ConfigFacet.sol";
-import { IERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 interface IGatewayFacet {
   function gatewayPoolBalance() external view returns (uint);
-  function deposit(
-    address _user,
-    address _token,
-    uint256 _amount,
-    uint256 _minUsdcAmount,
-    bytes calldata _swapData
-  ) external payable;
-  function calculateUsdc(address _token, uint256 _amount, bytes calldata _swapData) external payable returns (uint256);
+  function deposit(address _user, uint256 _amount) external;
   function withdraw(address _user, uint _amount, AuthSignature calldata _sig) external;
 }
 
@@ -31,19 +19,11 @@ interface IConfigFacet {
   function govToken() external view returns (address);
   function setGovToken(address _govToken) external;
   function usdcToken() external view returns (address);
-  function swapAdapter() external view returns (address);
-  function updateSwapAdapter(address _newAdapter) external;
 }
 
 contract GatewayTest is TestBaseContract {
   IGatewayFacet gatewayFacet;
   IConfigFacet configFacet;
-  DummyDexAdapter swapAdapter;
-  MockWETH weth;
-  MockERC20 otherToken;
-
-  uint256 constant INITIAL_WETH_LIQUIDITY = 100 ether;
-  uint256 constant INITIAL_USDC_LIQUIDITY = 200_000e6;
 
   function setUp() public virtual override {
     super.setUp();
@@ -51,34 +31,16 @@ contract GatewayTest is TestBaseContract {
     gatewayFacet = IGatewayFacet(diamond);
     configFacet = IConfigFacet(diamond);
 
-    weth = new MockWETH();
-    vm.prank(owner);
-    swapAdapter = new DummyDexAdapter(address(weth), address(usdcToken), owner);
-    otherToken = new MockERC20();
-
-
-    configFacet.updateSwapAdapter(address(swapAdapter));
-
-    usdcToken.mint(owner, INITIAL_USDC_LIQUIDITY * 2);
-    weth.deposit{ value: INITIAL_WETH_LIQUIDITY * 2 }();
-    weth.approve(address(swapAdapter), type(uint256).max);
-    usdcToken.approve(address(swapAdapter), type(uint256).max);
-    swapAdapter.addLiquidity(INITIAL_WETH_LIQUIDITY, INITIAL_USDC_LIQUIDITY);
-
     usdcToken.mint(account1, 100_000e6);
-    weth.deposit{ value: 100 ether }();
-    weth.transfer(account1, 100 ether);
-    otherToken.mint(account1, 100_000 ether);
-
-    vm.deal(account1, 100 ether);
+    usdcToken.mint(account2, 100_000e6);
   }
 
-  function test_Deposit_UsdcDirect_Success() public {
+  function test_Deposit_Success() public {
     uint256 amount = 1000e6;
 
     vm.startPrank(account1);
     usdcToken.approve(diamond, amount);
-    gatewayFacet.deposit(account1, address(usdcToken), amount, 0, "");
+    gatewayFacet.deposit(account1, amount);
     vm.stopPrank();
 
     assertEq(usdcToken.balanceOf(account1), 100_000e6 - amount);
@@ -86,114 +48,39 @@ contract GatewayTest is TestBaseContract {
     assertEq(gatewayFacet.gatewayPoolBalance(), amount);
   }
 
-  function test_Deposit_UsdcDirect_EmitsEvent() public {
+  function test_Deposit_EmitsEvent() public {
     uint256 amount = 1000e6;
 
     vm.recordLogs();
 
     vm.startPrank(account1);
     usdcToken.approve(diamond, amount);
-    gatewayFacet.deposit(account1, address(usdcToken), amount, 0, "");
+    gatewayFacet.deposit(account1, amount);
     vm.stopPrank();
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
 
     bool foundEvent = false;
     for (uint i = 0; i < entries.length; i++) {
-      if (entries[i].topics[0] == keccak256("TriballyGatewayDeposit(address,address,uint256,uint256)")) {
+      if (entries[i].topics[0] == keccak256("TriballyGatewayDeposit(address,uint256)")) {
         foundEvent = true;
         assertEq(address(uint160(uint256(entries[i].topics[1]))), account1);
-        assertEq(address(uint160(uint256(entries[i].topics[2]))), address(usdcToken));
       }
     }
     assertTrue(foundEvent, "Event not emitted");
-  }
-
-  function test_Deposit_NativeToken_Success() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-    vm.prank(account1);
-    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, 0, "");
-
-    assertGt(gatewayFacet.gatewayPoolBalance(), 0);
-    assertApproxEqAbs(gatewayFacet.gatewayPoolBalance(), expectedUsdc, 1);
-  }
-
-  function test_Deposit_NativeToken_RevertsWhenMsgValueMismatch() public {
-    uint256 amount = 1 ether;
-
-    vm.prank(account1);
-    vm.expectRevert(LibErrors.InvalidInputs.selector);
-    gatewayFacet.deposit{ value: 0.5 ether }(account1, address(0), amount, 0, "");
-  }
-
-  function test_Deposit_Weth_Success() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-    vm.startPrank(account1);
-    weth.approve(diamond, amount);
-    gatewayFacet.deposit(account1, address(weth), amount, 0, "");
-    vm.stopPrank();
-
-    assertEq(weth.balanceOf(account1), 100 ether - amount);
-    assertGt(gatewayFacet.gatewayPoolBalance(), 0);
-    assertApproxEqAbs(gatewayFacet.gatewayPoolBalance(), expectedUsdc, 1);
-  }
-
-  function test_Deposit_WithSlippageProtection_Success() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-    uint256 minUsdc = expectedUsdc - 10e6;
-
-    vm.prank(account1);
-    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, minUsdc, "");
-
-    assertGt(gatewayFacet.gatewayPoolBalance(), minUsdc);
-  }
-
-  function test_Deposit_WithSlippageProtection_Reverts() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-    uint256 minUsdc = expectedUsdc + 1000e6;
-
-    vm.prank(account1);
-    vm.expectRevert();
-    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, minUsdc, "");
-  }
-
-  function test_Deposit_FailsWhenSwapReturnsLessThanMinUsdcAmount() public {
-    InsufficientOutputSwapAdapter insufficientAdapter = new InsufficientOutputSwapAdapter(
-      address(weth),
-      address(usdcToken)
-    );
-
-    vm.prank(owner);
-    configFacet.updateSwapAdapter(address(insufficientAdapter));
-
-    usdcToken.mint(address(insufficientAdapter), 10_000e6);
-
-    uint256 amount = 1 ether;
-    uint256 minUsdc = 1000e6;
-
-    vm.startPrank(account1);
-    vm.expectRevert(abi.encodeWithSelector(LibErrors.InsufficientUsdcReceived.selector, 500e6, minUsdc));
-    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, minUsdc, "");
-    vm.stopPrank();
   }
 
   function test_Deposit_MultipleDeposits_AccumulatesBalance() public {
     vm.startPrank(account1);
     usdcToken.approve(diamond, 3000e6);
 
-    gatewayFacet.deposit(account1, address(usdcToken), 1000e6, 0, "");
+    gatewayFacet.deposit(account1, 1000e6);
     assertEq(gatewayFacet.gatewayPoolBalance(), 1000e6);
 
-    gatewayFacet.deposit(account1, address(usdcToken), 1000e6, 0, "");
+    gatewayFacet.deposit(account1, 1000e6);
     assertEq(gatewayFacet.gatewayPoolBalance(), 2000e6);
 
-    gatewayFacet.deposit(account1, address(usdcToken), 1000e6, 0, "");
+    gatewayFacet.deposit(account1, 1000e6);
     assertEq(gatewayFacet.gatewayPoolBalance(), 3000e6);
 
     vm.stopPrank();
@@ -204,19 +91,18 @@ contract GatewayTest is TestBaseContract {
 
     vm.startPrank(account2);
     usdcToken.approve(diamond, amount);
-    usdcToken.mint(account2, amount);
 
     vm.recordLogs();
-    gatewayFacet.deposit(account1, address(usdcToken), amount, 0, "");
+    gatewayFacet.deposit(account1, amount);
     vm.stopPrank();
 
-    assertEq(usdcToken.balanceOf(account2), 0);
+    assertEq(usdcToken.balanceOf(account2), 100_000e6 - amount);
     assertEq(gatewayFacet.gatewayPoolBalance(), amount);
 
     Vm.Log[] memory entries = vm.getRecordedLogs();
     bool foundEvent = false;
     for (uint i = 0; i < entries.length; i++) {
-      if (entries[i].topics[0] == keccak256("TriballyGatewayDeposit(address,address,uint256,uint256)")) {
+      if (entries[i].topics[0] == keccak256("TriballyGatewayDeposit(address,uint256)")) {
         foundEvent = true;
         assertEq(address(uint160(uint256(entries[i].topics[1]))), account1);
       }
@@ -230,121 +116,36 @@ contract GatewayTest is TestBaseContract {
     vm.startPrank(account1);
     usdcToken.approve(diamond, amount);
     vm.expectRevert(LibErrors.InvalidInputs.selector);
-    gatewayFacet.deposit(address(0), address(usdcToken), amount, 0, "");
+    gatewayFacet.deposit(address(0), amount);
     vm.stopPrank();
   }
 
-  function test_CalculateUsdc_UsdcDirect_ReturnsAmount() public {
+  function test_Deposit_RevertsWhenAmountIsZero() public {
+    vm.startPrank(account1);
+    vm.expectRevert(LibErrors.InvalidInputs.selector);
+    gatewayFacet.deposit(account1, 0);
+    vm.stopPrank();
+  }
+
+  function test_Deposit_RevertsWhenInsufficientApproval() public {
     uint256 amount = 1000e6;
-    (bool success, bytes memory result) = address(gatewayFacet).call(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(usdcToken), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 usdcOut = _extractCalculatedAmountOut(result);
-    assertEq(usdcOut, amount);
+
+    vm.startPrank(account1);
+    usdcToken.approve(diamond, amount - 1);
+    vm.expectRevert();
+    gatewayFacet.deposit(account1, amount);
+    vm.stopPrank();
   }
 
-  function test_CalculateUsdc_NativeToken_ReturnsQuote() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
+  function test_Deposit_RevertsWhenInsufficientBalance() public {
+    uint256 amount = 100_001e6;
 
-    vm.deal(address(this), amount);
-    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 usdcOut = _extractCalculatedAmountOut(result);
-
-    assertGt(usdcOut, 0);
-    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
+    vm.startPrank(account1);
+    usdcToken.approve(diamond, amount);
+    vm.expectRevert();
+    gatewayFacet.deposit(account1, amount);
+    vm.stopPrank();
   }
-
-  function test_CalculateUsdc_NativeToken_WithoutMsgValue_UsesFallback() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-    (bool success, bytes memory result) = address(gatewayFacet).call(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 usdcOut = _extractCalculatedAmountOut(result);
-
-    assertGt(usdcOut, 0);
-    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
-  }
-
-  function test_CalculateUsdc_NativeToken_WithSufficientBalance() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-    vm.deal(address(this), amount);
-    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 usdcOut = _extractCalculatedAmountOut(result);
-
-    assertGt(usdcOut, 0);
-    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
-  }
-
-  function test_CalculateUsdc_Weth_ReturnsQuote() public {
-    uint256 amount = 1 ether;
-    uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-    weth.approve(address(gatewayFacet), amount);
-
-    (bool success, bytes memory result) = address(gatewayFacet).call(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(weth), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 usdcOut = _extractCalculatedAmountOut(result);
-
-    assertGt(usdcOut, 0);
-    assertApproxEqAbs(usdcOut, expectedUsdc, 1);
-  }
-
-  function test_CalculateUsdc_NativeToken_DifferentAmounts() public {
-    uint256[] memory amounts = new uint256[](3);
-    amounts[0] = 0.1 ether;
-    amounts[1] = 5 ether;
-    amounts[2] = 10 ether;
-
-    for (uint i = 0; i < amounts.length; i++) {
-      uint256 amount = amounts[i];
-      uint256 expectedUsdc = (amount * INITIAL_USDC_LIQUIDITY) / (INITIAL_WETH_LIQUIDITY + amount);
-
-      vm.deal(address(this), amount);
-      (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
-        abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-      );
-      require(!success, "call should revert");
-      uint256 usdcOut = _extractCalculatedAmountOut(result);
-
-      assertGt(usdcOut, 0, "Quote should be greater than 0");
-      assertApproxEqAbs(usdcOut, expectedUsdc, 1, "Quote should match expected USDC amount");
-    }
-  }
-
-  function test_CalculateUsdc_ConsistentWithDeposit() public {
-    uint256 amount = 1 ether;
-
-    vm.deal(address(this), amount);
-    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-    );
-    require(!success, "call should revert");
-    uint256 quoteAmount = _extractCalculatedAmountOut(result);
-
-    vm.deal(account1, amount);
-    vm.prank(account1);
-    gatewayFacet.deposit{ value: amount }(account1, address(0), amount, 0, "");
-
-    uint256 actualDeposited = gatewayFacet.gatewayPoolBalance();
-
-    assertApproxEqAbs(quoteAmount, actualDeposited, 1, "Quote should match actual deposit amount");
-  }
-
 
   function test_Withdraw_Fails_IfBadSignature() public {
     _setupDeposit();
@@ -462,179 +263,14 @@ contract GatewayTest is TestBaseContract {
     assertEq(gatewayFacet.gatewayPoolBalance(), 100 - 1);
   }
 
-  function test_UpdateSwapAdapter_Success() public {
-    address newAdapter = address(0x9999);
-
-    vm.prank(owner);
-    configFacet.updateSwapAdapter(newAdapter);
-
-    assertEq(configFacet.swapAdapter(), newAdapter);
-  }
-
-  function test_UpdateSwapAdapter_RevertsWhenNotAdmin() public {
-    address newAdapter = address(0x9999);
-
-    vm.prank(account1);
-    vm.expectRevert(LibErrors.CallerMustBeAdminError.selector);
-    configFacet.updateSwapAdapter(newAdapter);
-  }
-
-  function test_UpdateSwapAdapter_RevertsWhenZeroAddress() public {
-    vm.prank(owner);
-    vm.expectRevert(LibErrors.InvalidSwapAdapter.selector);
-    configFacet.updateSwapAdapter(address(0));
-  }
-
-  function test_Deposit_RevokesApprovalAfterSwap() public {
-    uint256 amount = 1 ether;
-
-    vm.startPrank(account1);
-    weth.approve(diamond, amount);
-    gatewayFacet.deposit(account1, address(weth), amount, 0, "");
-    vm.stopPrank();
-
-    uint256 allowance = weth.allowance(diamond, address(swapAdapter));
-    assertEq(allowance, 0, "Approval should be revoked after swap");
-  }
-
-  function test_Deposit_ValidatesSwapOutput() public {
-    MaliciousSwapAdapter maliciousAdapter = new MaliciousSwapAdapter(address(weth), address(usdcToken), address(otherToken));
-
-    vm.prank(owner);
-    configFacet.updateSwapAdapter(address(maliciousAdapter));
-
-    usdcToken.mint(address(maliciousAdapter), 1000e6);
-    otherToken.mint(address(maliciousAdapter), 1000 ether);
-
-    uint256 amount = 1 ether;
-
-    vm.startPrank(account1);
-    weth.approve(diamond, amount);
-    vm.expectRevert(LibErrors.InvalidSwapOutput.selector);
-    gatewayFacet.deposit(account1, address(weth), amount, 0, "");
-    vm.stopPrank();
-  }
-
-  function test_CalculateUsdc_RevertsWithInvalidSwapAdapter_WhenAdapterDoesNotRevert() public {
-    BadSwapAdapter badAdapter = new BadSwapAdapter();
-
-    vm.prank(owner);
-    configFacet.updateSwapAdapter(address(badAdapter));
-
-    uint256 amount = 1 ether;
-
-    vm.deal(address(this), amount);
-    (bool success, bytes memory result) = address(gatewayFacet).call{value: amount}(
-      abi.encodeWithSelector(IGatewayFacet.calculateUsdc.selector, address(0), amount, "")
-    );
-    require(!success, "call should revert");
-
-    bytes4 selector;
-    assembly {
-      selector := mload(add(result, 0x20))
-    }
-
-    assertEq(selector, LibErrors.InvalidSwapAdapter.selector, "Should revert with InvalidSwapAdapter");
-  }
-
   function _setupDeposit() internal {
     vm.startPrank(account1);
     usdcToken.approve(diamond, 100);
-    gatewayFacet.deposit(account1, address(usdcToken), 100, 0, "");
+    gatewayFacet.deposit(account1, 100);
     vm.stopPrank();
 
     assertEq(usdcToken.balanceOf(account1), 100_000e6 - 100);
     assertEq(usdcToken.balanceOf(diamond), 100);
     assertEq(gatewayFacet.gatewayPoolBalance(), 100);
-  }
-
-  function _extractCalculatedAmountOut(bytes memory errorData) internal pure returns (uint256) {
-    require(errorData.length >= 36, "Invalid error data");
-    bytes4 selector;
-    uint256 amount;
-    assembly {
-      selector := mload(add(errorData, 0x20))
-      amount := mload(add(errorData, 0x24))
-    }
-    require(selector == LibErrors.CalculatedAmountOut.selector, "Unexpected error selector");
-    return amount;
-  }
-}
-
-contract MaliciousSwapAdapter {
-  using SafeERC20 for IERC20;
-
-  address public immutable weth;
-  address public immutable usdc;
-  address public immutable maliciousToken;
-
-  constructor(address _weth, address _usdc, address _maliciousToken) {
-    weth = _weth;
-    usdc = _usdc;
-    maliciousToken = _maliciousToken;
-  }
-
-  function swap(
-    address tokenIn,
-    uint256 amountIn,
-    uint256,
-    bytes calldata
-  ) external payable returns (uint256 amountOut) {
-    if (tokenIn != address(0)) {
-      uint256 existingBalance = IERC20(tokenIn).balanceOf(address(this));
-      if (existingBalance < amountIn) {
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn - existingBalance);
-      }
-    }
-
-    amountOut = 1000e6;
-    IERC20(maliciousToken).safeTransfer(msg.sender, 1000 ether);
-
-    return amountOut;
-  }
-
-  function getQuote(address, address, uint256, bytes calldata) external pure returns (uint256) {
-    return 1000e6;
-  }
-}
-
-contract InsufficientOutputSwapAdapter {
-  using SafeERC20 for IERC20;
-
-  address public immutable weth;
-  address public immutable usdc;
-
-  constructor(address _weth, address _usdc) {
-    weth = _weth;
-    usdc = _usdc;
-  }
-
-  function swap(
-    address tokenIn,
-    uint256 amountIn,
-    uint256,
-    bytes calldata
-  ) external payable returns (uint256 amountOut) {
-    if (tokenIn != address(0)) {
-      IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-    }
-
-    amountOut = 500e6;
-    IERC20(usdc).safeTransfer(msg.sender, 500e6);
-
-    return amountOut;
-  }
-
-  function getQuote(address, address, uint256, bytes calldata) external pure returns (uint256) {
-    return 500e6;
-  }
-}
-
-contract BadSwapAdapter {
-  function getQuote(address, uint256, bytes calldata) external payable {
-  }
-
-  function swap(address, uint256, uint256, bytes calldata) external payable returns (uint256) {
-    return 1000e6;
   }
 }

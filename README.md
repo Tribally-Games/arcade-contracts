@@ -1,4 +1,4 @@
-[![Build status](https://github.com/tribally-games/arcade-contracts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tribally-Games/arcade-contracts/actions/workflows/ci.yml)
+PCR[![Build status](https://github.com/tribally-games/arcade-contracts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Tribally-Games/arcade-contracts/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/Tribally-Games/arcade-contracts/badge.svg?branch=main)](https://coveralls.io/github/Tribally-Games/arcade-contracts?branch=main)
 
 # @tribally.games/arcade-contracts
@@ -12,12 +12,12 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
 ## On-chain addresses
 
 * Base:
-  * Arcade: [0xBFB6774242273CC72ab4a77f19085DF29C91BbA6](https://basescan.org/address/0xBFB6774242273CC72ab4a77f19085DF29C91BbA6)
-  * Dex adapter: [0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816](https://basescan.org/address/0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816)
+  * Arcade: [0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93](https://basescan.org/address/0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93)
+  * Dex depositor: [0xD054eFD6CA0072b06478a1040Ee9E82308021ce5](https://basescan.org/address/0xD054eFD6CA0072b06478a1040Ee9E82308021ce5)
 
 * Ronin:
-  * Arcade: [0xBFB6774242273CC72ab4a77f19085DF29C91BbA6](https://app.roninchain.com/address/0xBFB6774242273CC72ab4a77f19085DF29C91BbA6)
-  * DEX adapter: [0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816](https://app.roninchain.com/address/0x61a5bb9A83124259ae2CBcc613A72Cf8daC1c816)
+  * Arcade: [0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93](https://app.roninchain.com/address/0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93)
+  * DEX depositor: [0xD054eFD6CA0072b06478a1040Ee9E82308021ce5](https://app.roninchain.com/address/0xD054eFD6CA0072b06478a1040Ee9E82308021ce5)
 
 ## Usage guide
 
@@ -97,49 +97,20 @@ To deploy to public networks:
 
 ### Deploying to a new chain
 
-Before deploying the Arcade contract to a new chain, you must first deploy the DEX adapter:
-
-**Step 1: Deploy the DEX adapter**
-
 ```shell
-bun run scripts/deploy-adapter.ts <network>
+bun run dep <network> --new --tx-confirm-delay 5000
 ```
 
-For example, to deploy to Base:
-```shell
-bun run scripts/deploy-adapter.ts base
-```
-
-**Step 2: Update gemforge.config.cjs**
-
-Update the target's `initArgs` with the deployed adapter address (4th parameter):
-
-```js
-targets: {
-  base: {
-    initArgs: [
-      "0x...", // govToken
-      "0x...", // usdcToken
-      "0x...", // signer
-      "0x...", // swapAdapter <- UPDATE THIS
-    ],
-  }
-}
-```
-
-**Step 3: Deploy the Arcade contract**
-
-```shell
-bun run dep <network> --new
-```
+_Note: `--tx-confirm-delay` isn't strictly necessary but sometimes the chain RPC endpoint isn't fast enough in returning updated chain state (yeah, I'm looking at you Base) so we use it here just to give things time._
 
 The predeploy script will verify the adapter is deployed before proceeding. If the adapter is not deployed, you will see a clear error message with instructions.
 
 ### Verifying contracts
 
-Once deployed you can verify contract source-codes on Basescan using:
+Once deployed you can verify contract source-codes using:
 
 * Base: `ETHERSCAN_API_KEY=... bun run verify base`
+* Ronin: `bun run verify ronin`
 
 For verbose output simply add `-v`:
 

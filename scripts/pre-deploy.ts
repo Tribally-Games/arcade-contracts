@@ -4,14 +4,13 @@ import { type Hex } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClients } from './utils';
-import { deployWithCreate3, getPredictedAddress } from './create3-deploy';
+import { deployWithCreate3 } from './create3-deploy';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
 const USDC_SALT = '0x555344435f544553545f544f4b454e0000000000000000000000000000000001' as Hex;
 const TRIBAL_SALT = '0x545249424144414c5f544553545f544f4b454e00000000000000000000000001' as Hex;
 const WETH_SALT = '0x574554485f4d4f434b5f544f4b454e0000000000000000000000000000000001' as Hex;
-const ADAPTER_SALT = '0x4445585f41444150544552000000000000000000000000000000000000013aff' as Hex;
 
 async function deployLocalDevnetContracts() {
   console.log('Running predeploy script for local devnet target...');
@@ -97,64 +96,11 @@ async function deployLocalDevnetContracts() {
     console.log('✓ Wrapped 1000 ETH to WETH');
   }
 
-  console.log('\n📦 Deploying DummyDexAdapter with CREATE3...');
-  const adapterResult = await deployWithCreate3(clients, {
-    contractName: 'DummyDexAdapter',
-    contractPath: 'DummyDexAdapter.sol',
-    constructorArgs: [wethAddress, usdcAddress, clients.account.address],
-    constructorTypes: ['address', 'address', 'address'],
-    salt: ADAPTER_SALT,
-  });
-  const adapterAddress = adapterResult.address;
-  console.log(`✓ DummyDexAdapter deployed at ${adapterAddress}`);
-
-  if (!adapterResult.alreadyDeployed) {
-    console.log('\n💧 Adding initial liquidity (100 WETH + 100 USDC)...');
-
-    const wethAmount = 100n * 10n ** 18n;
-    const usdcAmount = 100n * 10n ** 6n;
-
-    const approveWethHash = await clients.walletClient.writeContract({
-      address: wethAddress,
-      abi: wethArtifact.abi,
-      functionName: 'approve',
-      args: [adapterAddress, wethAmount],
-      account: clients.account,
-    });
-    await clients.publicClient.waitForTransactionReceipt({ hash: approveWethHash });
-
-    const approveUsdcHash = await clients.walletClient.writeContract({
-      address: usdcAddress,
-      abi: erc20Artifact.abi,
-      functionName: 'approve',
-      args: [adapterAddress, usdcAmount],
-      account: clients.account,
-    });
-    await clients.publicClient.waitForTransactionReceipt({ hash: approveUsdcHash });
-
-    const adapterArtifact = JSON.parse(
-      readFileSync(join(process.cwd(), 'out/DummyDexAdapter.sol/DummyDexAdapter.json'), 'utf-8')
-    );
-
-    const addLiquidityHash = await clients.walletClient.writeContract({
-      address: adapterAddress,
-      abi: adapterArtifact.abi,
-      functionName: 'addLiquidity',
-      args: [wethAmount, usdcAmount],
-      account: clients.account,
-    });
-    await clients.publicClient.waitForTransactionReceipt({ hash: addLiquidityHash });
-
-    console.log('✓ Initial liquidity added (100 WETH + 100 USDC)');
-    console.log('  Initial price: 1 WETH = 1 USDC');
-  }
-
-  console.log('\n✅ All contracts deployed successfully!\n');
+  console.log('\n✅ All test tokens deployed successfully!\n');
   console.log('Contract Addresses:');
   console.log(`  USDC:    ${usdcAddress}`);
   console.log(`  TRIBAL:  ${tribalAddress}`);
   console.log(`  WETH:    ${wethAddress}`);
-  console.log(`  Adapter: ${adapterAddress}`);
 }
 
 async function main() {
@@ -164,36 +110,6 @@ async function main() {
 
   if (TARGET === 'devnet1' || TARGET === 'devnet2') {
     await deployLocalDevnetContracts();
-  } else if (TARGET === 'ronin' || TARGET === 'base') {
-    console.log(`Running predeploy script for ${TARGET} target...`);
-    console.log('\n╔════════════════════════════════════════╗');
-    console.log('║     DEX Adapter Verification           ║');
-    console.log('╚════════════════════════════════════════╝\n');
-
-    const configPath = join(process.cwd(), 'gemforge.config.cjs');
-    const config = require(configPath);
-
-    const targetConfig = config.targets[TARGET];
-    if (!targetConfig || !targetConfig.initArgs || targetConfig.initArgs.length < 4) {
-      throw new Error(`Invalid target configuration for ${TARGET} in gemforge.config.cjs`);
-    }
-
-    const adapterAddress = targetConfig.initArgs[3] as Hex;
-    console.log(`Checking adapter deployment at: ${adapterAddress}`);
-
-    const clients = createClients(TARGET);
-    const code = await clients.publicClient.getCode({ address: adapterAddress });
-
-    if (!code || code === '0x') {
-      console.error('\n❌ DEX Adapter not deployed!');
-      console.error('\nTo deploy the adapter:');
-      console.error(`  1. Run: bun run scripts/deploy-adapter.ts ${TARGET}`);
-      console.error(`  2. Update gemforge.config.cjs targets.${TARGET}.initArgs[3] with the deployed adapter address`);
-      console.error(`  3. Retry deployment\n`);
-      throw new Error('DEX Adapter must be deployed before deploying the Arcade contract');
-    }
-
-    console.log('✅ DEX Adapter verified at address\n');
   } else {
     console.log(`Skipping predeploy - target is ${TARGET}`);
   }

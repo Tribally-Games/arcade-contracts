@@ -1,10 +1,10 @@
 import { encodePacked, keccak256, toHex } from 'viem';
 import DIAMOND_ABI from '../src/generated/abi.json';
-import IDexSwapAdapterArtifact from '../out/IDexSwapAdapter.sol/IDexSwapAdapter.json';
+import IDexDepositorArtifact from '../out/IDexDepositor.sol/IDexDepositor.json';
 
 export { DIAMOND_ABI };
 
-export const ADAPTER_ABI = IDexSwapAdapterArtifact.abi;
+export const DEPOSITOR_ABI = IDexDepositorArtifact.abi;
 
 export type TokenConfig = {
   address: `0x${string}`;
