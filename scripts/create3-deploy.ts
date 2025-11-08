@@ -8,6 +8,13 @@ import {
   FACTORY_GAS_LIMIT,
   FACTORY_GAS_PRICE,
 } from './create3';
+import {
+  MULTICALL3_CONTRACT_ADDRESS,
+  MULTICALL3_SENDER,
+  MULTICALL3_SIGNED_RAW_TX,
+  MULTICALL3_GAS_LIMIT,
+  MULTICALL3_GAS_PRICE,
+} from './multicall3';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
@@ -61,6 +68,94 @@ export async function isContractDeployed(clients: ClientSetup, address: Hex): Pr
 
   const code = await publicClient.getCode({ address });
   return code !== undefined && code !== '0x';
+}
+
+export async function ensureMulticall3(clients: ClientSetup): Promise<void> {
+  const { publicClient, walletClient, account } = clients;
+
+  const multicallCode = await publicClient.getCode({
+    address: MULTICALL3_CONTRACT_ADDRESS,
+  });
+
+  if (multicallCode && multicallCode !== '0x') {
+    console.log(`✓ Multicall3 already deployed at ${MULTICALL3_CONTRACT_ADDRESS}`);
+    return;
+  }
+
+  console.log('\n📦 Multicall3 not found, deploying...');
+  console.log(`  Target address: ${MULTICALL3_CONTRACT_ADDRESS}`);
+  console.log(`  Multicall3 sender: ${MULTICALL3_SENDER}`);
+
+  const senderBalance = await publicClient.getBalance({
+    address: MULTICALL3_SENDER,
+  });
+
+  const requiredBalance = MULTICALL3_GAS_LIMIT * MULTICALL3_GAS_PRICE;
+
+  console.log(`  Sender balance: ${senderBalance} wei`);
+  console.log(`  Required balance: ${requiredBalance} wei (0.1 ETH/RON)`);
+
+  if (senderBalance < requiredBalance) {
+    const fundingNeeded = requiredBalance - senderBalance;
+    const fundingWithBuffer = fundingNeeded + (fundingNeeded / 10n);
+
+    console.log(`  ⚠️  Insufficient balance, auto-funding sender...`);
+    console.log(`  Funding amount: ${fundingWithBuffer} wei (${fundingNeeded} + 10% buffer)`);
+
+    const userBalance = await publicClient.getBalance({ address: account.address });
+
+    if (userBalance < fundingWithBuffer) {
+      throw new Error(
+        `Insufficient balance to fund Multicall3 sender.\n` +
+          `  Your address: ${account.address}\n` +
+          `  Your balance: ${userBalance} wei\n` +
+          `  Funding needed: ${fundingWithBuffer} wei\n\n` +
+          `Please add funds to your deployer wallet.`
+      );
+    }
+
+    const fundTx = await walletClient.sendTransaction({
+      to: MULTICALL3_SENDER,
+      value: fundingWithBuffer,
+      account,
+    });
+
+    console.log(`  Funding tx: ${fundTx}`);
+    await publicClient.waitForTransactionReceipt({ hash: fundTx });
+    console.log(`  ✓ Multicall3 sender funded successfully`);
+  }
+
+  try {
+    const txHash = await publicClient.sendRawTransaction({
+      serializedTransaction: MULTICALL3_SIGNED_RAW_TX as Hex,
+    });
+
+    console.log(`  Transaction: ${txHash}`);
+    console.log('  Waiting for confirmation...');
+
+    const receipt = await publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      timeout: 60000,
+    });
+
+    const deployedCode = await publicClient.getCode({
+      address: MULTICALL3_CONTRACT_ADDRESS,
+    });
+
+    if (!deployedCode || deployedCode === '0x') {
+      throw new Error('Multicall3 deployment failed - no code at expected address');
+    }
+
+    console.log(`✓ Multicall3 deployed successfully`);
+    console.log(`  Gas used: ${receipt.gasUsed}`);
+    console.log(`  Block: ${receipt.blockNumber}`);
+  } catch (error: any) {
+    if (error.message?.includes('already known') || error.message?.includes('nonce too low')) {
+      console.log('✓ Multicall3 already deployed (tx already mined)');
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function ensureCreate3Factory(clients: ClientSetup): Promise<void> {

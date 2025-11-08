@@ -4,7 +4,7 @@ import { type Hex } from 'viem';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createClients } from './utils';
-import { deployWithCreate3 } from './create3-deploy';
+import { deployWithCreate3, ensureMulticall3 } from './create3-deploy';
 
 const TARGET = process.env.GEMFORGE_DEPLOY_TARGET;
 
@@ -18,6 +18,8 @@ async function deployLocalDevnetContracts() {
   const clients = createClients(TARGET!);
 
   console.log(`Using deployer address: ${clients.account.address}`);
+
+  await ensureMulticall3(clients);
 
   const erc20Artifact = JSON.parse(
     readFileSync(join(process.cwd(), 'out/TestERC20.sol/TestERC20.json'), 'utf-8')
