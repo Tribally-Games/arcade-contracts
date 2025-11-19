@@ -295,6 +295,39 @@ contract DummyDexDepositorTest is Test {
         assertEq(quotedAmount, amountIn);
     }
 
+    function test_GetQuote_RevertsOnInvalidToken() public {
+        TestERC20 invalidToken = new TestERC20("Invalid", "INV", 18);
+        uint256 amountIn = 1000e18;
+
+        (bool success,) = address(depositor).call(
+            abi.encodeWithSelector(depositor.getQuote.selector, address(invalidToken), amountIn, "")
+        );
+
+        assertFalse(success, "getQuote should revert with InvalidToken");
+    }
+
+    function test_GetQuote_RevertsWhenOutputExceedsReserve() public {
+        uint256 largeAmountIn = 1_000_000 ether;
+
+        vm.deal(address(this), largeAmountIn);
+        (bool success,) = address(depositor).call{value: largeAmountIn}(
+            abi.encodeWithSelector(depositor.getQuote.selector, address(0), largeAmountIn, "")
+        );
+
+        assertFalse(success, "getQuote should revert with InsufficientLiquidity");
+    }
+
+    function test_Deposit_RevertsOnInvalidToken() public {
+        TestERC20 invalidToken = new TestERC20("Invalid", "INV", 18);
+        invalidToken.mint(user, 1000e18);
+
+        vm.startPrank(user);
+        invalidToken.approve(address(depositor), 1000e18);
+        vm.expectRevert(DummyDexDepositor.InvalidToken.selector);
+        depositor.deposit(user, address(invalidToken), 1000e18, 0, "");
+        vm.stopPrank();
+    }
+
     function test_ReceiveFunction_Reverts() public {
         vm.expectRevert("Use deposit() for native token deposits");
         payable(address(depositor)).transfer(1 ether);

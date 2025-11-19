@@ -240,6 +240,11 @@ contract UniversalDexDepositorTest is Test {
         depositor.rescueTokens(address(0), 1000e6);
     }
 
+    function test_Receive_RevertsOnDirectETHTransfer() public {
+        vm.expectRevert("Use deposit() for native token deposits");
+        payable(address(depositor)).transfer(1 ether);
+    }
+
     function _extractCalculatedAmountOut(bytes memory errorData) internal pure returns (uint256) {
         require(errorData.length >= 36, "Invalid error data");
         bytes4 selector;
