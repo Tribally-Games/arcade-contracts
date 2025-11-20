@@ -3,8 +3,6 @@
 
 # @tribally.games/arcade-contracts
 
-**NOTE: at present non-USDC deposits on Base don't work! The adapter works for quotes and swaps but deposits and quotes via the gateway don't yet work for some unknown reason**
-
 Arcade smart contracts for [Tribally Games](https://tribally.games).
 
 This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeable proxy contract managed using [Gemforge](https://gemforge.xyz/).
