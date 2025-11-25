@@ -1,0 +1,240 @@
+{
+  "compiler": {
+    "version": "0.8.24+commit.e11b9ed9"
+  },
+  "language": "Solidity",
+  "output": {
+    "abi": [
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_contractOwner",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "payable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "_initializationContractAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes",
+            "name": "_calldata",
+            "type": "bytes"
+          }
+        ],
+        "type": "error",
+        "name": "InitializationFunctionReverted"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "struct IDiamondCut.FacetCut[]",
+            "name": "_diamondCut",
+            "type": "tuple[]",
+            "components": [
+              {
+                "internalType": "address",
+                "name": "facetAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "enum IDiamondCut.FacetCutAction",
+                "name": "action",
+                "type": "uint8"
+              },
+              {
+                "internalType": "bytes4[]",
+                "name": "functionSelectors",
+                "type": "bytes4[]"
+              }
+            ],
+            "indexed": false
+          },
+          {
+            "internalType": "address",
+            "name": "_init",
+            "type": "address",
+            "indexed": false
+          },
+          {
+            "internalType": "bytes",
+            "name": "_calldata",
+            "type": "bytes",
+            "indexed": false
+          }
+        ],
+        "type": "event",
+        "name": "DiamondCut",
+        "anonymous": false
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "previousOwner",
+            "type": "address",
+            "indexed": true
+          },
+          {
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address",
+            "indexed": true
+          }
+        ],
+        "type": "event",
+        "name": "OwnershipTransferred",
+        "anonymous": false
+      },
+      {
+        "inputs": [],
+        "stateMutability": "payable",
+        "type": "fallback"
+      },
+      {
+        "inputs": [],
+        "stateMutability": "payable",
+        "type": "receive"
+      }
+    ],
+    "devdoc": {
+      "kind": "dev",
+      "methods": {},
+      "version": 1
+    },
+    "userdoc": {
+      "kind": "user",
+      "methods": {},
+      "version": 1
+    }
+  },
+  "settings": {
+    "remappings": [
+      "@katana/operation-contracts/=lib/katana-operation-contracts/src/",
+      "@katana/v3-contracts/=lib/katana-operation-contracts/lib/katana-v3-contracts/src/",
+      "@openzeppelin-contracts-4.7.0/=lib/katana-operation-contracts/dependencies/@openzeppelin-contracts-4.7.0/",
+      "@openzeppelin/contracts-upgradeable/=lib/katana-operation-contracts/lib/openzeppelin-contracts-upgradeable/contracts/",
+      "@openzeppelin/contracts/=lib/katana-operation-contracts/lib/openzeppelin-contracts/contracts/",
+      "@uniswap/lib/contracts/=lib/katana-operation-contracts/lib/katana-v3-contracts/lib/solidity-lib/contracts/",
+      "base64-sol/=lib/katana-operation-contracts/lib/katana-v3-contracts/lib/base64/",
+      "base64/=lib/katana-operation-contracts/lib/katana-v3-contracts/lib/base64/",
+      "diamond-2-hardhat/=lib/diamond-2-hardhat/contracts/",
+      "ds-test/=lib/katana-operation-contracts/lib/solmate/lib/ds-test/src/",
+      "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+      "forge-gas-snapshot/=lib/katana-operation-contracts/lib/permit2x/lib/forge-gas-snapshot/src/",
+      "forge-std/=lib/forge-std/src/",
+      "katana-operation-contracts/=lib/katana-operation-contracts/",
+      "katana-v3-contracts/=lib/katana-operation-contracts/lib/katana-v3-contracts/",
+      "lib/=lib/",
+      "openzeppelin-contracts-upgradeable/=lib/katana-operation-contracts/lib/openzeppelin-contracts-upgradeable/",
+      "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+      "openzeppelin/=lib/openzeppelin-contracts/contracts/",
+      "permit2/=lib/katana-operation-contracts/lib/permit2x/",
+      "permit2x/=lib/katana-operation-contracts/lib/permit2x/",
+      "solidity-lib/=lib/katana-operation-contracts/lib/katana-v3-contracts/lib/solidity-lib/contracts/",
+      "solmate/=lib/katana-operation-contracts/lib/solmate/src/"
+    ],
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "metadata": {
+      "bytecodeHash": "ipfs"
+    },
+    "compilationTarget": {
+      "src/generated/DiamondProxy.sol": "DiamondProxy"
+    },
+    "evmVersion": "cancun",
+    "libraries": {}
+  },
+  "sources": {
+    "lib/diamond-2-hardhat/contracts/Diamond.sol": {
+      "keccak256": "0x3a6e4e401ae5011e4e16982df12bc14c9e25edf5547e4b6fac2eaea747428051",
+      "urls": [
+        "bzz-raw://96c990552b5f7be79402da2965a6dd4595cb620fd537b07d41999592836f736c",
+        "dweb:/ipfs/QmeqBeE3uDPKvUP1ZEHDYmDwxeyZ1J5TntAuRQ9ALko2Ka"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/facets/DiamondCutFacet.sol": {
+      "keccak256": "0x87c20e3e50bd65ee69c6c7153bc0b88da7eaacfa09c1287b2e925ac8290b1103",
+      "urls": [
+        "bzz-raw://3944221616e80881630b15efa56f2e76c600bacc6df75b4f7123b166955a5bd5",
+        "dweb:/ipfs/QmQrbU8GMTR8zqopCgLNNE8G3C3iNyEgh68ngGpd7nM3XJ"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/facets/DiamondLoupeFacet.sol": {
+      "keccak256": "0xd17d580825fd0da51042f26a1af8c7d88f7f48a6790bdec721d995a794ef0e8f",
+      "urls": [
+        "bzz-raw://bdf037cab37a22c2c2ec985c968087697135f5d7b573742bc5873abad76dce59",
+        "dweb:/ipfs/Qmbs54ZgQooP2eyCVdq9sUfCRpRrr2GdaSMuVWrQKHrSeA"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/facets/OwnershipFacet.sol": {
+      "keccak256": "0x6502a171801d68e68de6c5a2b879d5e12a3a1539cdc568c2bfcc268fbdf6c5a9",
+      "urls": [
+        "bzz-raw://e8094a53d216df365a5cbdaa0e4292c6faae493e88c62e7a616ccb4b5440c097",
+        "dweb:/ipfs/QmNXspNxT83mcL1mynUiUrfj94aVe8rz2UyZUJJn7gfWWe"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/interfaces/IDiamondCut.sol": {
+      "keccak256": "0xc00c16bfa30a3fa5f3dc684f7f8ba62c259962b25f647d9588739458989717fc",
+      "urls": [
+        "bzz-raw://119d9a5acd99b9462a8341c9b95ddd468648799eefa47038f81521431743c1ae",
+        "dweb:/ipfs/QmTF7WNyPWTUtUzNcpq5rf5v2uw5TwzqsSg9D53pfQufcu"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/interfaces/IDiamondLoupe.sol": {
+      "keccak256": "0x10884024af2c0f7deca0fac4ddf84e76da5dba35b6e02fabeac8ea54c1a5c6f7",
+      "urls": [
+        "bzz-raw://df3404a4aed3bbda2f5e441d7035b354237d8c9d7c27b149ccf66d13a1d81d45",
+        "dweb:/ipfs/QmZvHWgRCge8tLJ3x3Lf3JQkbNTgAN6LzwCGBabbgk8tew"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/interfaces/IERC165.sol": {
+      "keccak256": "0x7541f7408d0f74162bc4664d5e012427f2ceaab2abadca0353269ef15ee03d8b",
+      "urls": [
+        "bzz-raw://a8e7a34b3ea39f4c0dfa6f5ace5d9415e4d0c90cb3f4264e6946b808f2d4011c",
+        "dweb:/ipfs/QmWdcRF4krMMb1ua3hmV8avdHKYa4XXt1iw7sxx1ntsEJa"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/interfaces/IERC173.sol": {
+      "keccak256": "0x001e07b0fbc894300b939d496ffb005abe398b5bc609802d319b8cdeafe5d36b",
+      "urls": [
+        "bzz-raw://8e59f66879ef993892410cbe834b1d2dd34891f47066b7be601ff825b0748361",
+        "dweb:/ipfs/QmZedQ668we8ohPPZF5tPP5gKpJ5n22h3FDFkoFT5VXpEu"
+      ],
+      "license": "MIT"
+    },
+    "lib/diamond-2-hardhat/contracts/libraries/LibDiamond.sol": {
+      "keccak256": "0x1a34d99350a4f7de99120f035386de136b9711497e28d3a3d10e76dbec6c51f3",
+      "urls": [
+        "bzz-raw://a083f9560f40f447ddcaa7a02da5c688554d88cdff045d47a7c9f3e6de19a55c",
+        "dweb:/ipfs/QmWQQGCjByjDtbNGRARnAddJSDoWofXWtaNcm2P416MDXb"
+      ],
+      "license": "MIT"
+    },
+    "src/generated/DiamondProxy.sol": {
+      "keccak256": "0x0c907dfa869c14948187538173bcd9441247792bda006aa5cb27e9d97a9e9dbc",
+      "urls": [
+        "bzz-raw://9c1086087552e0b57ad7fd14a978eb9b85fd8c77308b684a872c98043175b583",
+        "dweb:/ipfs/QmVbrTmsYAzZVeAF39r5CEiKEzSLjWDznAhFVmT1VwbNQK"
+      ],
+      "license": "MIT"
+    }
+  },
+  "version": 1
+}

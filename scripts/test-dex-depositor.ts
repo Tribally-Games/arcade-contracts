@@ -110,10 +110,10 @@ async function main() {
     client: { public: publicClient },
   });
 
-  const tokenDecimals = isNative ? 18 : isUsdc ? 6 : await token!.read.decimals();
+  const tokenDecimals = isNative ? 18 : isUsdc ? 6 : (await token!.read.decimals()) as number;
   const [usdcSymbol, usdcDecimals] = await Promise.all([
-    usdcContract.read.symbol(),
-    usdcContract.read.decimals(),
+    usdcContract.read.symbol() as Promise<string>,
+    usdcContract.read.decimals() as Promise<number>,
   ]);
 
   console.log('╔════════════════════════════════════════╗');
@@ -136,12 +136,12 @@ async function main() {
 
   const balance = isNative
     ? await publicClient.getBalance({ address: account.address })
-    : await token!.read.balanceOf([account.address]);
+    : (await token!.read.balanceOf([account.address])) as bigint;
 
   console.log(`1. Checking balances...`);
   console.log(`   Your ${tokenSymbol} balance: ${formatAmount(balance, tokenDecimals)}`);
 
-  const usdcBefore = await usdcContract.read.balanceOf([account.address]);
+  const usdcBefore = (await usdcContract.read.balanceOf([account.address])) as bigint;
   console.log(`   Your ${usdcSymbol} balance: ${formatAmount(usdcBefore, usdcDecimals)}\n`);
 
   if (balance < amountIn) {
@@ -152,7 +152,7 @@ async function main() {
     console.log(`2. Skipping approval (native token)...\n`);
   } else {
     console.log(`2. Approving depositor to spend ${formatAmount(amountIn, tokenDecimals)} ${tokenSymbol}...`);
-    const allowance = await token!.read.allowance([account.address, depositorAddress]);
+    const allowance = (await token!.read.allowance([account.address, depositorAddress])) as bigint;
     if (allowance < amountIn) {
       const approveTx = await token!.write.approve([depositorAddress, amountIn]);
       console.log(`   Tx: ${approveTx}`);

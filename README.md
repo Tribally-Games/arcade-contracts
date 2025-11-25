@@ -17,6 +17,8 @@ This is a [Diamond Standard](https://eips.ethereum.org/EIPS/eip-2535) upgradeabl
   * Arcade: [0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93](https://app.roninchain.com/address/0x65Cf7D1AEAa70Bc8C0b0A22D4A71D2C95d55db93)
   * DEX depositor: [0xD054eFD6CA0072b06478a1040Ee9E82308021ce5](https://app.roninchain.com/address/0xD054eFD6CA0072b06478a1040Ee9E82308021ce5)
 
+_Note: The Arcade contracts are owned by our Gnosis SAFE multisigs_.
+
 ## Usage guide
 
 Install the NPM package:

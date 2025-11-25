@@ -18,7 +18,7 @@ async function addLiquidityToDummyDepositor(
   depositorAddress: Hex,
   wethAddress: Hex,
   usdcAddress: Hex,
-  network: string
+  _network: string
 ) {
   console.log('\n💧 Adding initial liquidity to DummyDexDepositor...');
 
@@ -36,12 +36,14 @@ async function addLiquidityToDummyDepositor(
     address: depositorAddress,
     abi: depositorArtifact.abi,
     functionName: 'reserveWETH',
+    args: [],
   }) as bigint;
 
   const reserveUSDC = await clients.publicClient.readContract({
     address: depositorAddress,
     abi: depositorArtifact.abi,
     functionName: 'reserveUSDC',
+    args: [],
   }) as bigint;
 
   if (reserveWETH > 0n || reserveUSDC > 0n) {
@@ -84,6 +86,7 @@ async function addLiquidityToDummyDepositor(
     functionName: 'approve',
     args: [depositorAddress, WETH_LIQUIDITY_AMOUNT],
     account: clients.account,
+    chain: null,
   });
   await clients.publicClient.waitForTransactionReceipt({ hash: approveWethHash });
   console.log('✓ WETH approved');
@@ -95,6 +98,7 @@ async function addLiquidityToDummyDepositor(
     functionName: 'approve',
     args: [depositorAddress, USDC_LIQUIDITY_AMOUNT],
     account: clients.account,
+    chain: null,
   });
   await clients.publicClient.waitForTransactionReceipt({ hash: approveUsdcHash });
   console.log('✓ USDC approved');
@@ -106,6 +110,7 @@ async function addLiquidityToDummyDepositor(
     functionName: 'addLiquidity',
     args: [WETH_LIQUIDITY_AMOUNT, USDC_LIQUIDITY_AMOUNT],
     account: clients.account,
+    chain: null,
   });
   await clients.publicClient.waitForTransactionReceipt({ hash: addLiquidityHash });
   console.log('✓ Liquidity added successfully');
