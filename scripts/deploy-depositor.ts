@@ -6,7 +6,7 @@ import { DEX_ROUTERS, TOKEN_CONFIGS } from './gateway-utils';
 import { type Hex } from 'viem';
 import { deployWithCreate3, type DeployResult, verifyContract } from './create3-deploy';
 
-const CREATE3_SALT = '0x4445585a21442151541152000000010000010000110000000010010200013aff' as Hex;
+const CREATE3_SALT = '0x4445585a21442151541152000000010000010000110000000010010200013bff' as Hex;
 
 export async function deployDepositor(
   network: string,
@@ -184,6 +184,7 @@ async function main() {
         result.address,
         contractName,
         contractPath,
+        'src/depositors',
         constructorArgs,
         constructorTypes,
         verificationConfig

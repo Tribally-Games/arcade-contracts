@@ -250,6 +250,7 @@ export async function verifyContract(
   address: Hex,
   contractName: string,
   contractPath: string,
+  sourcePath: string,
   constructorArgs: any[],
   constructorTypes: string[],
   verification: VerificationConfig
@@ -261,7 +262,7 @@ export async function verifyContract(
       ? encodeAbiParameters(parseAbiParameters(constructorTypes.join(',')), constructorArgs)
       : ('0x' as Hex);
 
-  const contractIdentifier = `src/adapters/${contractPath}:${contractName}`;
+  const contractIdentifier = `${sourcePath}/${contractPath}:${contractName}`;
 
   const args = [
     'verify-contract',
