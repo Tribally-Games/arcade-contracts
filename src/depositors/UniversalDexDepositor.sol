@@ -72,6 +72,12 @@ contract UniversalDexDepositor is IDexDepositor, Ownable, ReentrancyGuard {
         bool isNative = tokenIn == address(0);
         bool isUsdc = tokenIn == usdcToken;
 
+        if (isNative) {
+            if (msg.value != amountIn) revert LibErrors.InvalidInputs();
+        } else if (msg.value > 0) {
+            revert LibErrors.InvalidInputs();
+        }
+
         if (isUsdc) {
             IERC20(usdcToken).safeTransferFrom(msg.sender, address(this), amountIn);
             usdcAmount = amountIn;

@@ -145,6 +145,45 @@ contract UniversalDexDepositorTest is Test {
         assertEq(diamond.gatewayPoolBalance(), amountIn);
     }
 
+    function test_Deposit_USDC_RevertsWhenETHSent() public {
+        uint256 amountIn = 1000e6;
+
+        vm.startPrank(user);
+        usdc.approve(address(depositor), amountIn);
+        vm.expectRevert(LibErrors.InvalidInputs.selector);
+        depositor.deposit{ value: 1 ether }(user, address(usdc), amountIn, 0, "");
+        vm.stopPrank();
+    }
+
+    function test_Deposit_NativeToken_RevertsWhenMsgValueLessThanAmountIn() public {
+        uint256 amountIn = 2 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.prank(user);
+        vm.expectRevert(LibErrors.InvalidInputs.selector);
+        depositor.deposit{ value: 1 ether }(user, address(0), amountIn, 0, path);
+    }
+
+    function test_Deposit_NativeToken_RevertsWhenMsgValueGreaterThanAmountIn() public {
+        uint256 amountIn = 1 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.prank(user);
+        vm.expectRevert(LibErrors.InvalidInputs.selector);
+        depositor.deposit{ value: 2 ether }(user, address(0), amountIn, 0, path);
+    }
+
+    function test_Deposit_ERC20Token_RevertsWhenETHSent() public {
+        uint256 amountIn = 1 ether;
+        bytes memory path = abi.encodePacked(address(weth), uint24(3000), address(usdc));
+
+        vm.startPrank(user);
+        weth.approve(address(depositor), amountIn);
+        vm.expectRevert(LibErrors.InvalidInputs.selector);
+        depositor.deposit{ value: 1 ether }(user, address(weth), amountIn, 0, path);
+        vm.stopPrank();
+    }
+
     function test_GetQuote_NativeToken_ReturnsCorrectAmount() public {
         uint256 amountIn = 1 ether;
         uint256 expectedOut = (amountIn * 2000) / 1e12;
