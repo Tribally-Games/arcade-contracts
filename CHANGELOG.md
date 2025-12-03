@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [2.1.0](https://github.com/Tribally-Games/arcade-contracts/compare/v2.0.2...v2.1.0) (2025-12-03)
+
+
+### Features
+
+* add automatic liquidity provisioning to DummyDexDepositor in post-deploy ([6843b33](https://github.com/Tribally-Games/arcade-contracts/commit/6843b335670ba8823243e1ea7078f028230a1cba))
+* add Multicall3 deployment to pre-deploy script ([6e69089](https://github.com/Tribally-Games/arcade-contracts/commit/6e6908924b05c3e6844b85e653338847efd8652c))
+* add ownership transfer script and fix viem type errors ([e01262d](https://github.com/Tribally-Games/arcade-contracts/commit/e01262d9f11853ba2d999bfb5468e153df762ff9))
+
+
+### Bug Fixes
+
+* add msg.value validation to UniversalDexDepositor ([e5599e2](https://github.com/Tribally-Games/arcade-contracts/commit/e5599e23ce7ce744e2f1c0ae7652e5ae74e48fcf))
+
 ## [2.0.2](https://github.com/Tribally-Games/arcade-contracts/compare/v2.0.1...v2.0.2) (2025-10-30)
 
 
