@@ -86,6 +86,42 @@ export function loadGemforgeConfig(): GemforgeConfig {
   return require(configPath);
 }
 
+interface DeployedContract {
+  name: string;
+  onChain: {
+    address: string;
+  };
+}
+
+interface GemforgeDeployments {
+  [target: string]: {
+    chainId: number;
+    contracts: DeployedContract[];
+  };
+}
+
+export function loadGemforgeDeployments(): GemforgeDeployments {
+  const deploymentsPath = join(process.cwd(), 'gemforge.deployments.json');
+  return JSON.parse(readFileSync(deploymentsPath, 'utf-8'));
+}
+
+export function getDeployedAddress(target: string, contractName: string): `0x${string}` {
+  const deployments = loadGemforgeDeployments();
+  const targetDeployments = deployments[target];
+
+  if (!targetDeployments) {
+    throw new Error(`Target ${target} not found in gemforge.deployments.json`);
+  }
+
+  const contract = targetDeployments.contracts.find(c => c.name === contractName);
+
+  if (!contract) {
+    throw new Error(`Contract ${contractName} not found for target ${target}`);
+  }
+
+  return contract.onChain.address as `0x${string}`;
+}
+
 export function getChainConfig(target: string, rpcUrl: string): Chain {
   switch (target) {
     case 'devnet1':
